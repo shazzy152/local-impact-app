@@ -14,9 +14,7 @@ function ItemsScreen() {
 
   // Form fields
   const [formName, setFormName] = useState('')
-  const [formUnit, setFormUnit] = useState('bags')
-  const [formRate, setFormRate] = useState('')
-  const [formNotes, setFormNotes] = useState('')
+  const [formUnit, setFormUnit] = useState('kgs')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250)
@@ -27,13 +25,9 @@ function ItemsScreen() {
     if (editingRow) {
       setFormName(editingRow.name)
       setFormUnit(editingRow.unit)
-      setFormRate(editingRow.rate)
-      setFormNotes(editingRow.notes || '')
     } else {
       setFormName('')
-      setFormUnit('bags')
-      setFormRate('')
-      setFormNotes('')
+      setFormUnit('kgs')
     }
   }, [editingRow])
 
@@ -81,16 +75,14 @@ function ItemsScreen() {
   }
 
   const handleSave = () => {
-    if (!formName || !formUnit || !formRate) {
+    if (!formName || !formUnit) {
       alert('Please fill in all required fields.')
       return
     }
     const newRow = {
       id: editingRow ? editingRow.id : crypto.randomUUID(),
       name: formName,
-      unit: formUnit,
-      rate: Number(formRate),
-      notes: formNotes
+      unit: formUnit
     }
     let updated
     if (editingRow) updated = rows.map(r => r.id === editingRow.id ? newRow : r)
@@ -105,7 +97,7 @@ function ItemsScreen() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Header />
+      <Header onAddClick={() => { setEditingRow(null); setIsModalOpen(true); }} />
 
       <main className="w-full px-4 py-3 mx-8">
 
@@ -123,10 +115,6 @@ function ItemsScreen() {
                 <TableHeadCell onClick={() => handleSort('unit')} className="cursor-pointer text-white">
                   Unit {sort.key === 'unit' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell onClick={() => handleSort('rate')} className="cursor-pointer text-right text-white">
-                  Rate (₹) {sort.key === 'rate' && (sort.dir === 'asc' ? '▲' : '▼')}
-                </TableHeadCell>
-                <TableHeadCell className="text-white">Notes</TableHeadCell>
                 <TableHeadCell className="text-white">Actions</TableHeadCell>
               </TableRow>
             </TableHead>
@@ -135,8 +123,6 @@ function ItemsScreen() {
                 <TableRow key={row.id} className={i % 2 === 1 ? 'bg-gray-700' : 'bg-gray-800'}>
                   <TableCell className="text-white">{row.name}</TableCell>
                   <TableCell className="text-white">{row.unit}</TableCell>
-                  <TableCell className="text-right text-white">₹{row.rate}</TableCell>
-                  <TableCell className="text-white">{row.notes}</TableCell>
                   <TableCell>
                     <Button size="sm" onClick={() => handleEdit(row)} className="mr-2 min-h-11 min-w-11">Edit</Button>
                     <Button size="sm" color="failure" onClick={() => handleDelete(row)} className="min-h-11 min-w-11">Delete</Button>
@@ -146,13 +132,6 @@ function ItemsScreen() {
             </TableBody>
           </Table>
         </div>
-
-        <Button
-          className="fixed bottom-5 right-5 rounded-full h-14 w-14 text-xl shadow-lg"
-          onClick={() => { setEditingRow(null); setIsModalOpen(true) }}
-        >
-          +
-        </Button>
 
         {toastMessage && (
           <Toast className="fixed top-5 right-5">
@@ -178,18 +157,8 @@ function ItemsScreen() {
               <div>
                 <label htmlFor="unit" className="block text-sm font-medium text-white mb-1">Unit</label>
                 <Select id="unit" value={formUnit} onChange={e => setFormUnit(e.target.value)}>
-                  <option value="bags">bags</option>
                   <option value="kgs">kgs</option>
-                  <option value="bunch">bunch</option>
                 </Select>
-              </div>
-              <div>
-                <label htmlFor="rate" className="block text-sm font-medium text-white mb-1">Rate (₹)</label>
-                <TextInput id="rate" type="number" placeholder="Rate" value={formRate} onChange={e => setFormRate(e.target.value)} />
-              </div>
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-white mb-1">Notes</label>
-                <Textarea id="notes" placeholder="Notes" value={formNotes} onChange={e => setFormNotes(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end space-x-2 p-4 border-t border-gray-700">

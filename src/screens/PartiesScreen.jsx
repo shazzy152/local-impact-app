@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput, Textarea, Toast } from 'flowbite-react'
+import { Button, Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput, Toast } from 'flowbite-react'
 import Header from '../components/Header'
 import { getPartiesData, setPartiesData } from '../lib/storage'
 
@@ -16,7 +16,6 @@ function PartiesScreen() {
   const [formName, setFormName] = useState('')
   const [formPhone, setFormPhone] = useState('')
   const [formAddress, setFormAddress] = useState('')
-  const [formNotes, setFormNotes] = useState('')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250)
@@ -28,12 +27,10 @@ function PartiesScreen() {
       setFormName(editingRow.name)
       setFormPhone(editingRow.phone || '')
       setFormAddress(editingRow.address || '')
-      setFormNotes(editingRow.notes || '')
     } else {
       setFormName('')
       setFormPhone('')
       setFormAddress('')
-      setFormNotes('')
     }
   }, [editingRow])
 
@@ -82,15 +79,43 @@ function PartiesScreen() {
 
   const handleSave = () => {
     if (!formName) {
-      alert('Please enter a party name.')
+      setToastMessage('Please enter a party name.')
+      setTimeout(() => setToastMessage(''), 3000)
       return
     }
+
+    // Check for duplicate name or phone (excluding the current editing row)
+    const existingParties = editingRow ? rows.filter(r => r.id !== editingRow.id) : rows
+    
+    // Check if party name already exists
+    const nameExists = existingParties.some(party => 
+      party.name.toLowerCase() === formName.toLowerCase()
+    )
+    
+    if (nameExists) {
+      setToastMessage('A party with this name already exists. Please use a different name.')
+      setTimeout(() => setToastMessage(''), 3000)
+      return
+    }
+
+    // Check if phone already exists (only if phone is provided)
+    if (formPhone && formPhone.trim()) {
+      const phoneExists = existingParties.some(party => 
+        party.phone && party.phone.toLowerCase() === formPhone.toLowerCase()
+      )
+      
+      if (phoneExists) {
+        setToastMessage('A party with this phone number already exists. Please use a different phone number.')
+        setTimeout(() => setToastMessage(''), 3000)
+        return
+      }
+    }
+
     const newRow = {
       id: editingRow ? editingRow.id : crypto.randomUUID(),
       name: formName,
       phone: formPhone,
-      address: formAddress,
-      notes: formNotes
+      address: formAddress
     }
     const updated = editingRow ? rows.map(r => r.id === editingRow.id ? newRow : r) : [...rows, newRow]
     setRows(updated)
@@ -103,7 +128,7 @@ function PartiesScreen() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Header />
+      <Header onAddClick={() => { setEditingRow(null); setIsModalOpen(true); }} />
 
       <main className="w-full px-4 py-3 mx-8">
 
@@ -124,7 +149,6 @@ function PartiesScreen() {
                 <TableHeadCell onClick={() => handleSort('address')} className="cursor-pointer text-white">
                   Address {sort.key === 'address' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell className="text-white">Notes</TableHeadCell>
                 <TableHeadCell className="text-white">Actions</TableHeadCell>
               </TableRow>
             </TableHead>
@@ -134,7 +158,6 @@ function PartiesScreen() {
                   <TableCell className="text-white">{row.name}</TableCell>
                   <TableCell className="text-white">{row.phone}</TableCell>
                   <TableCell className="text-white">{row.address}</TableCell>
-                  <TableCell className="text-white">{row.notes}</TableCell>
                   <TableCell>
                     <Button size="sm" onClick={() => handleEdit(row)} className="mr-2 min-h-11 min-w-11">Edit</Button>
                     <Button size="sm" color="failure" onClick={() => handleDelete(row)} className="min-h-11 min-w-11">Delete</Button>
@@ -145,15 +168,8 @@ function PartiesScreen() {
           </Table>
         </div>
 
-        <Button
-          className="fixed bottom-5 right-5 rounded-full h-14 w-14 text-xl shadow-lg"
-          onClick={() => { setEditingRow(null); setIsModalOpen(true) }}
-        >
-          +
-        </Button>
-
         {toastMessage && (
-          <Toast className="fixed top-5 right-5">
+          <Toast className="fixed top-5 right-5 z-[60] border-2 border-red-500">
             <div className="flex items-center">
               <div className="ml-3 text-sm font-normal">{toastMessage}</div>
             </div>
@@ -180,10 +196,6 @@ function PartiesScreen() {
               <div>
                 <label htmlFor="address" className="block text-sm font-medium text-white mb-1">Address</label>
                 <TextInput id="address" placeholder="Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} />
-              </div>
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-white mb-1">Notes</label>
-                <Textarea id="notes" placeholder="Notes" value={formNotes} onChange={e => setFormNotes(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end space-x-2 p-4 border-t border-gray-700">

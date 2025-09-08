@@ -31,7 +31,7 @@ body {
 }
 
 .header-action-buttons {
-  display: none;
+  display: flex;
 }
 
 /* Desktop view (640px and above) - show desktop nav and action buttons, hide hamburger */

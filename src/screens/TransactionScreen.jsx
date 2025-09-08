@@ -18,13 +18,7 @@ function TransactionScreen() {
   const [formItem, setFormItem] = useState('')
   const [formQty, setFormQty] = useState('')
   const [formRate, setFormRate] = useState('')
-  const [formMode, setFormMode] = useState('Cash')
-  const [formNotes, setFormNotes] = useState('')
-  const [formStatus, setFormStatus] = useState('Pending')
-  const [formUnit, setFormUnit] = useState('bags')
-  const [formLabour, setFormLabour] = useState('')
-  const [formCoolie, setFormCoolie] = useState('')
-  const [formCommission, setFormCommission] = useState('')
+  const [formUnit, setFormUnit] = useState('kgs')
   const [itemsList, setItemsList] = useState([])
   const [partiesList, setPartiesList] = useState([])
   const today = getToday()
@@ -41,26 +35,14 @@ function TransactionScreen() {
       setFormItem(editingRow.item)
       setFormQty(editingRow.qty)
       setFormRate(editingRow.rate)
-      setFormMode(editingRow.mode)
-      setFormNotes(editingRow.notes)
-      setFormStatus(editingRow.status)
-      setFormUnit(editingRow.unit || 'bags')
-      setFormLabour(editingRow.labour || '')
-      setFormCoolie(editingRow.coolie || '')
-      setFormCommission(editingRow.commission || '')
+      setFormUnit(editingRow.unit || 'kgs')
     } else {
       setFormDate(today)
       setFormParty('')
       setFormItem('')
       setFormQty('')
       setFormRate('')
-      setFormMode('Cash')
-      setFormNotes('')
-      setFormStatus('Pending')
-      setFormUnit('bags')
-      setFormLabour('')
-      setFormCoolie('')
-      setFormCommission('')
+      setFormUnit('kgs')
     }
   }, [editingRow, today])
 
@@ -137,9 +119,7 @@ function TransactionScreen() {
 
   const handleSave = () => {
     const amount = computeAmount({ qty: formQty, rate: formRate })
-    const labourCoolieTotal = (Number(formLabour) || 0) + (Number(formCoolie) || 0)
-    const commissionAmount = (Number(formCommission) || 0) * amount / 100
-    const netTotal = amount + labourCoolieTotal + commissionAmount
+    const netTotal = amount
     
     const newRow = {
       id: editingRow ? editingRow.id : crypto.randomUUID(),
@@ -149,14 +129,7 @@ function TransactionScreen() {
       qty: Number(formQty),
       rate: Number(formRate),
       amount,
-      mode: formMode,
-      notes: formNotes,
-      status: formStatus,
       unit: formUnit,
-      labour: Number(formLabour) || 0,
-      coolie: Number(formCoolie) || 0,
-      commission: Number(formCommission) || 0,
-      commissionAmount,
       netTotal
     }
     let updatedRows
@@ -179,20 +152,12 @@ function TransactionScreen() {
     setFormItem('')
     setFormQty('')
     setFormRate('')
-    setFormMode('Cash')
-    setFormNotes('')
-    setFormStatus('Pending')
-    setFormUnit('bags')
-    setFormLabour('')
-    setFormCoolie('')
-    setFormCommission('')
+    setFormUnit('kgs')
   }
 
   // Calculate totals for display
   const rateTotal = computeAmount({ qty: formQty, rate: formRate })
-  const labourCoolieTotal = (Number(formLabour) || 0) + (Number(formCoolie) || 0)
-  const commissionAmount = (Number(formCommission) || 0) * rateTotal / 100
-  const netTotal = rateTotal + labourCoolieTotal + commissionAmount
+  const netTotal = rateTotal
 
   const parties = [...new Set(rows.map(r => r.party))]
 
@@ -204,7 +169,7 @@ function TransactionScreen() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Header />
+      <Header onAddClick={() => { setEditingRow(null); setIsModalOpen(true); }} />
 
   {/* Page Container */}
   <main className="w-full px-4 py-3 mx-8">
@@ -241,10 +206,8 @@ function TransactionScreen() {
                   Rate (₹) {sort.key === 'rate' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
                 <TableHeadCell onClick={() => handleSort('amount')} className="cursor-pointer text-right text-white">
-                  Amount (₹) {sort.key === 'amount' && (sort.dir === 'asc' ? '▲' : '▼')}
+                  Net Total (₹) {sort.key === 'amount' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell className="text-white">Mode</TableHeadCell>
-                <TableHeadCell className="text-white">Status</TableHeadCell>
                 <TableHeadCell className="text-white">Actions</TableHeadCell>
               </TableRow>
             </TableHead>
@@ -257,12 +220,6 @@ function TransactionScreen() {
                   <TableCell className="text-right text-white">{row.qty}</TableCell>
                   <TableCell className="text-right text-white">₹{row.rate}</TableCell>
                   <TableCell className="text-right text-white">₹{row.amount}</TableCell>
-                  <TableCell className="text-white">{row.mode}</TableCell>
-                  <TableCell>
-                    <Badge color={row.status === 'Completed' ? 'success' : row.status === 'Pending' ? 'warning' : row.status === 'Processing' ? 'info' : 'failure'}>
-                      {row.status}
-                    </Badge>
-                  </TableCell>
                   <TableCell>
                     <Button size="sm" onClick={() => handleEdit(row)} className="mr-2 min-h-11 min-w-11">Edit</Button>
                     <Button size="sm" color="failure" onClick={() => handleDelete(row)} className="min-h-11 min-w-11">Delete</Button>
@@ -272,14 +229,6 @@ function TransactionScreen() {
             </TableBody>
           </Table>
         </div>
-
-        {/* Floating Action Button */}
-        <Button
-          className="fixed bottom-5 right-5 rounded-full h-14 w-14 text-xl shadow-lg"
-          onClick={() => { setEditingRow(null); setIsModalOpen(true); }}
-        >
-          +
-        </Button>
 
         {/* Toast */}
         {toastMessage && (
@@ -344,9 +293,7 @@ function TransactionScreen() {
                   <div>
                     <Label htmlFor="unit" className="block text-xs text-gray-300 mb-1">Unit</Label>
                     <Select id="unit" value={formUnit} onChange={(e) => setFormUnit(e.target.value)} className="dark">
-                      <option value="bags">bags</option>
                       <option value="kgs">kgs</option>
-                      <option value="bunch">bunch</option>
                     </Select>
                   </div>
                 </div>
@@ -355,78 +302,23 @@ function TransactionScreen() {
               {/* Rate Section */}
               <div>
                 <Label htmlFor="rate" className="block text-sm font-medium text-white mb-1">Rate (₹)</Label>
-                <TextInput id="rate" type="number" placeholder="Rate per unit" value={formRate} onChange={(e) => setFormRate(e.target.value)} className="dark" />
+                <TextInput id="rate" type="number" placeholder={`Rate per ${formUnit}`} value={formRate} onChange={(e) => setFormRate(e.target.value)} className="dark" />
               </div>
 
-              {/* Labour/Luggage and Coolie Section */}
-              <div>
-                <Label className="block text-sm font-medium text-white mb-2">Additional Charges</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="labour" className="block text-xs text-gray-300 mb-1">Labour/Luggage (₹)</Label>
-                    <TextInput id="labour" type="number" placeholder="0" value={formLabour} onChange={(e) => setFormLabour(e.target.value)} className="dark" />
-                  </div>
-                  <div>
-                    <Label htmlFor="coolie" className="block text-xs text-gray-300 mb-1">Coolie (₹)</Label>
-                    <TextInput id="coolie" type="number" placeholder="0" value={formCoolie} onChange={(e) => setFormCoolie(e.target.value)} className="dark" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Commission Section */}
-              <div>
-                <Label htmlFor="commission" className="block text-sm font-medium text-white mb-1">Commission (%)</Label>
-                <TextInput id="commission" type="number" placeholder="0" step="0.01" value={formCommission} onChange={(e) => setFormCommission(e.target.value)} className="dark" />
-              </div>
-
-              {/* Total Calculation Boxes */}
+              {/* Total Calculation Box */}
               <div className="bg-gray-700 rounded-lg p-4">
                 <Label className="block text-sm font-medium text-white mb-3">Calculation Summary</Label>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-gray-600 rounded p-3 text-center">
-                    <div className="text-xs text-gray-300 mb-1">Rate Total</div>
-                    <div className="text-lg font-semibold text-white">₹{rateTotal}</div>
-                  </div>
-                  <div className="bg-gray-600 rounded p-3 text-center">
-                    <div className="text-xs text-gray-300 mb-1">Commission</div>
-                    <div className="text-lg font-semibold text-white">₹{commissionAmount.toFixed(2)}</div>
-                  </div>
-                  <div className="bg-blue-600 rounded p-3 text-center">
+                <div className="flex justify-center">
+                  <div className="bg-blue-600 rounded p-3 text-center w-full max-w-xs">
                     <div className="text-xs text-gray-200 mb-1">Net Total</div>
                     <div className="text-lg font-bold text-white">₹{netTotal.toFixed(2)}</div>
                   </div>
                 </div>
-                <div className="mt-2 text-xs text-gray-400">
-                  Net = Rate Total + Labour (₹{formLabour || 0}) + Coolie (₹{formCoolie || 0}) + Commission
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  Net Total = Rate × Quantity ({formRate || 0} × {formQty || 0})
                 </div>
               </div>
 
-              {/* Payment Mode and Status */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="mode" className="block text-sm font-medium text-white mb-1">Payment Mode</Label>
-                  <Select id="mode" value={formMode} onChange={(e) => setFormMode(e.target.value)} className="dark">
-                    <option>Cash</option>
-                    <option>UPI</option>
-                    <option>Card</option>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="status" className="block text-sm font-medium text-white mb-1">Status</Label>
-                  <Select id="status" value={formStatus} onChange={(e) => setFormStatus(e.target.value)} className="dark">
-                    <option>Pending</option>
-                    <option>Completed</option>
-                    <option>Processing</option>
-                    <option>Cancelled</option>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <Label htmlFor="notes" className="block text-sm font-medium text-white mb-1">Notes</Label>
-                <Textarea id="notes" placeholder="Additional notes..." value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="dark" rows={2} />
-              </div>
             </div>
             <div className="flex justify-between p-4 border-t border-gray-700">
               <Button color="gray" onClick={handleClear}>Clear</Button>

@@ -8,6 +8,8 @@ function TodayScreen() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sort, setSort] = useState({ key: 'date', dir: 'asc' })
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   
   const [toastMessage, setToastMessage] = useState('')
   const today = getToday()
@@ -20,11 +22,32 @@ function TodayScreen() {
   
 
   useEffect(() => {
-    // Get all transactions and filter for today's date
+    // Get all transactions and filter based on date range
     let allTransactions = getTransactionsData()
-    let todaysTransactions = allTransactions.filter(transaction => transaction.date === today)
-    setRows(todaysTransactions)
-  }, [today])
+    let filteredTransactions = allTransactions
+    
+    if (dateFrom && dateTo) {
+      // Filter by date range
+      filteredTransactions = allTransactions.filter(transaction => 
+        transaction.date >= dateFrom && transaction.date <= dateTo
+      )
+    } else if (dateFrom) {
+      // Filter from date onwards
+      filteredTransactions = allTransactions.filter(transaction => 
+        transaction.date >= dateFrom
+      )
+    } else if (dateTo) {
+      // Filter up to date
+      filteredTransactions = allTransactions.filter(transaction => 
+        transaction.date <= dateTo
+      )
+    } else {
+      // Default to today's transactions if no date filter is set
+      filteredTransactions = allTransactions.filter(transaction => transaction.date === today)
+    }
+    
+    setRows(filteredTransactions)
+  }, [today, dateFrom, dateTo])
 
   const handleSort = (key) => {
     setSort(prev => ({
@@ -77,20 +100,67 @@ function TodayScreen() {
   {/* Page Container */}
   <main className="w-full px-4 py-3 mx-8">
         {/* Summary Cards */}
-        <div className="grid gap-3 sm:grid-cols-3 mb-4">
-          <Card className="bg-gray-800 border-gray-700">
-            <h5 className="text-sm text-gray-300">Today's Sales</h5>
-            <p className="text-2xl font-semibold text-white">{salesCount}</p>
-            <Badge color="info">Today</Badge>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
+          <Card className="bg-gray-800 border-gray-700 p-2 sm:p-4">
+            <h5 className="text-xs sm:text-sm text-gray-300">Total Qty</h5>
+            <p className="text-lg sm:text-2xl font-semibold text-white">{totalQty}</p>
           </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <h5 className="text-sm text-gray-300">Total Qty</h5>
-            <p className="text-2xl font-semibold text-white">{totalQty}</p>
+          <Card className="bg-gray-800 border-gray-700 p-2 sm:p-4">
+            <h5 className="text-xs sm:text-sm text-gray-300">Revenue</h5>
+            <p className="text-sm sm:text-xl font-semibold text-white">{formattedRevenue}</p>
           </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <h5 className="text-sm text-gray-300">Revenue</h5>
-            <p className="text-2xl font-semibold text-white">{formattedRevenue}</p>
-          </Card>
+        </div>
+
+        {/* Date Filter Section */}
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+            <div>
+              <label htmlFor="dateFrom" className="block text-xs text-gray-400 mb-1">From:</label>
+              <TextInput
+                id="dateFrom"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="dark text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="dateTo" className="block text-xs text-gray-400 mb-1">To:</label>
+              <TextInput
+                id="dateTo"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="dark text-sm"
+              />
+            </div>
+            <div>
+              <Button 
+                size="sm" 
+                color="gray" 
+                onClick={() => {
+                  setDateFrom(today)
+                  setDateTo(today)
+                }}
+                className="w-full"
+              >
+                Today
+              </Button>
+            </div>
+            <div>
+              <Button 
+                size="sm" 
+                color="gray" 
+                onClick={() => {
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+                className="w-full"
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Search Input */}
@@ -125,8 +195,6 @@ function TodayScreen() {
                 <TableHeadCell onClick={() => handleSort('amount')} className="cursor-pointer text-right text-white">
                   Amount (₹) {sort.key === 'amount' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell className="text-white">Mode</TableHeadCell>
-                <TableHeadCell className="text-white">Status</TableHeadCell>
                 <TableHeadCell className="text-white">Actions</TableHeadCell>
               </TableRow>
             </TableHead>
@@ -139,12 +207,6 @@ function TodayScreen() {
                   <TableCell className="text-right text-white">{row.qty}</TableCell>
                   <TableCell className="text-right text-white">₹{row.rate}</TableCell>
                   <TableCell className="text-right text-white">₹{row.amount}</TableCell>
-                  <TableCell className="text-white">{row.mode}</TableCell>
-                  <TableCell className="text-white">
-                    <Badge color={row.status === 'Completed' ? 'success' : row.status === 'Pending' ? 'warning' : 'info'}>
-                      {row.status || 'Pending'}
-                    </Badge>
-                  </TableCell>
                   <TableCell>
                     <Button size="sm" color="failure" onClick={() => handleDelete(row)} className="min-h-11 min-w-11">Delete</Button>
                   </TableCell>

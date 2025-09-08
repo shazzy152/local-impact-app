@@ -4,17 +4,22 @@ import { useEffect, useRef, useState } from 'react'
 import { setTodayData, setTransactionsData, setPartiesData, setItemsData } from '../lib/storage'
 import { getDummyData } from '../lib/dummyData'
 
-function Header() {
+function Header({ onAddClick }) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
   const btnRef = useRef(null)
   const location = useLocation()
 
+  // Check if current route supports adding
+  const getCanAdd = () => {
+    return ['/transactions', '/parties', '/items'].includes(location.pathname)
+  }
+
   // Get current screen name based on route
   const getScreenName = () => {
     switch (location.pathname) {
       case '/':
-        return 'Today'
+        return 'Overview'
       case '/transactions':
         return 'Transactions'
       case '/reports':
@@ -91,7 +96,7 @@ function Header() {
             {/* Inline nav on desktop */}
             <div className="desktop-nav space-x-2">
               <Link to="/">
-                <Button size="sm" color="light">Today</Button>
+                <Button size="sm" color="light">Overview</Button>
               </Link>
               <Link to="/transactions">
                 <Button size="sm" color="light">Transactions</Button>
@@ -112,12 +117,23 @@ function Header() {
 
           {/* Right: Action buttons */}
           <div className="header-action-buttons items-center space-x-2">
-            <Button size="sm" color="failure" onClick={handlePurge}>
-              Purge
-            </Button>
-            <Button size="sm" color="info" onClick={handleLoadDummy}>
-              Dummy
-            </Button>
+            {getCanAdd() && onAddClick && (
+              <Button 
+                size="sm" 
+                className="rounded-full h-10 w-10 text-xl font-bold border-2 border-white/20 bg-white/10 backdrop-blur-md hover:bg-white/20 hover:border-white/30 transition-all duration-300 transform hover:scale-110 flex items-center justify-center"
+                onClick={onAddClick}
+              >
+                +
+              </Button>
+            )}
+            <div className="hidden sm:flex items-center space-x-2">
+              <Button size="sm" color="failure" onClick={handlePurge}>
+                Purge
+              </Button>
+              <Button size="sm" color="info" onClick={handleLoadDummy}>
+                Dummy
+              </Button>
+            </div>
           </div>
 
           {/* Mobile dropdown menu */}
@@ -126,7 +142,7 @@ function Header() {
               <div className="mx-auto w-full max-w-sm bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-2">
                 <div className="flex flex-col gap-2">
                   <Link to="/" onClick={() => setOpen(false)}>
-                    <Button color="light" className="w-full justify-center">Today</Button>
+                    <Button color="light" className="w-full justify-center">Overview</Button>
                   </Link>
                   <Link to="/transactions" onClick={() => setOpen(false)}>
                     <Button color="light" className="w-full justify-center">Transactions</Button>
