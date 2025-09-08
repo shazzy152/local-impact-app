@@ -110,7 +110,7 @@ function ReportsScreen() {
                       <TextInput
                         id="commission"
                         type="number"
-                        placeholder="Enter commission percentage"
+                        placeholder=""
                         value={commission}
                         onChange={(e) => setCommission(e.target.value)}
                         className="w-full"

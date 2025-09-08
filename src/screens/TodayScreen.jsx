@@ -244,56 +244,56 @@ function TodayScreen() {
                   />
                 </div>
 
-                {/* Cash Input */}
-                <div>
-                  <Label htmlFor="calculateCash" className="block text-sm font-medium text-white mb-2">Cash</Label>
-                  <TextInput
-                    id="calculateCash"
-                    type="number"
-                    placeholder="0"
-                    value={calculateCash}
-                    onChange={(e) => setCalculateCash(e.target.value)}
-                    className="dark"
-                  />
+                {/* Cash and Loan Input Row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="calculateCash" className="block text-sm font-medium text-white mb-2">Cash</Label>
+                    <TextInput
+                      id="calculateCash"
+                      type="number"
+                      placeholder="0"
+                      value={calculateCash}
+                      onChange={(e) => setCalculateCash(e.target.value)}
+                      className="dark"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="calculateLoan" className="block text-sm font-medium text-white mb-2">Loan</Label>
+                    <TextInput
+                      id="calculateLoan"
+                      type="number"
+                      placeholder="0"
+                      value={calculateLoan}
+                      onChange={(e) => setCalculateLoan(e.target.value)}
+                      className="dark"
+                    />
+                  </div>
                 </div>
 
-                {/* Loan Input */}
-                <div>
-                  <Label htmlFor="calculateLoan" className="block text-sm font-medium text-white mb-2">Loan</Label>
-                  <TextInput
-                    id="calculateLoan"
-                    type="number"
-                    placeholder="0"
-                    value={calculateLoan}
-                    onChange={(e) => setCalculateLoan(e.target.value)}
-                    className="dark"
-                  />
-                </div>
-
-                {/* Advance Input */}
-                <div>
-                  <Label htmlFor="calculateAdvance" className="block text-sm font-medium text-white mb-2">Advance</Label>
-                  <TextInput
-                    id="calculateAdvance"
-                    type="number"
-                    placeholder="0"
-                    value={calculateAdvance}
-                    onChange={(e) => setCalculateAdvance(e.target.value)}
-                    className="dark"
-                  />
-                </div>
-
-                {/* Luggage Input */}
-                <div>
-                  <Label htmlFor="calculateLuggage" className="block text-sm font-medium text-white mb-2">Luggage</Label>
-                  <TextInput
-                    id="calculateLuggage"
-                    type="number"
-                    placeholder="0"
-                    value={calculateLuggage}
-                    onChange={(e) => setCalculateLuggage(e.target.value)}
-                    className="dark"
-                  />
+                {/* Advance and Luggage Input Row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="calculateAdvance" className="block text-sm font-medium text-white mb-2">Advance</Label>
+                    <TextInput
+                      id="calculateAdvance"
+                      type="number"
+                      placeholder="0"
+                      value={calculateAdvance}
+                      onChange={(e) => setCalculateAdvance(e.target.value)}
+                      className="dark"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="calculateLuggage" className="block text-sm font-medium text-white mb-2">Luggage</Label>
+                    <TextInput
+                      id="calculateLuggage"
+                      type="number"
+                      placeholder="0"
+                      value={calculateLuggage}
+                      onChange={(e) => setCalculateLuggage(e.target.value)}
+                      className="dark"
+                    />
+                  </div>
                 </div>
 
                 {/* Calculation Summary Box */}
@@ -357,6 +357,18 @@ function TodayScreen() {
                 )}
               </div>
               <div className="flex justify-end gap-2 mt-6">
+                <Button 
+                  color="gray" 
+                  onClick={() => {
+                    setCalculateDate('')
+                    setCalculateCash('')
+                    setCalculateLoan('')
+                    setCalculateAdvance('')
+                    setCalculateLuggage('')
+                  }}
+                >
+                  Clear
+                </Button>
                 <Button 
                   color="blue" 
                   onClick={() => {
