@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { setTodayData, setTransactionsData, setPartiesData, setItemsData } from '../lib/storage'
 import { getDummyData } from '../lib/dummyData'
 
-function Header({ onAddClick }) {
+function Header({ onAddClick, onCalculateClick }) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
   const btnRef = useRef(null)
@@ -101,6 +101,9 @@ function Header({ onAddClick }) {
               <Link to="/transactions">
                 <Button size="sm" color="light">Transactions</Button>
               </Link>
+              <Link to="/reports">
+                <Button size="sm" color="light">Reports</Button>
+              </Link>
               <Link to="/parties">
                 <Button size="sm" color="light">Parties</Button>
               </Link>
@@ -117,6 +120,16 @@ function Header({ onAddClick }) {
 
           {/* Right: Action buttons */}
           <div className="header-action-buttons items-center space-x-2">
+            {onCalculateClick && (
+              <Button 
+                size="sm" 
+                color="blue"
+                onClick={onCalculateClick}
+                className="text-sm font-medium"
+              >
+                Calculate
+              </Button>
+            )}
             {getCanAdd() && onAddClick && (
               <Button 
                 size="sm" 
@@ -146,6 +159,9 @@ function Header({ onAddClick }) {
                   </Link>
                   <Link to="/transactions" onClick={() => setOpen(false)}>
                     <Button color="light" className="w-full justify-center">Transactions</Button>
+                  </Link>
+                  <Link to="/reports" onClick={() => setOpen(false)}>
+                    <Button color="light" className="w-full justify-center">Reports</Button>
                   </Link>
                   <Link to="/parties" onClick={() => setOpen(false)}>
                     <Button color="light" className="w-full justify-center">Parties</Button>

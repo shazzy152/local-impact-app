@@ -41,11 +41,11 @@ export function setItemsData(rows) {
   localStorage.setItem('items', JSON.stringify(rows));
 }
 
-export function computeAmount({ qty, rate }) {
-  return Number(qty) * Number(rate);
+export function computeAmount({ qty, rate, luggage = 0 }) {
+  return Number(qty) * Number(rate) + Number(luggage);
 }
 
-// Row shape for Today table: { id, date, party, item, qty, rate, amount, mode, notes }
-// Row shape for Transactions table: { id, date, party, item, qty, rate, amount, mode, notes, status }
+// Row shape for Today table: { id, date, party, item, qty, rate, luggage, amount, mode, notes }
+// Row shape for Transactions table: { id, date, party, item, qty, rate, luggage, amount, mode, notes, status }
 // Row shape for Items table: { id, name, unit, rate, notes }
 // Row shape for Parties table: { id, name, phone, address, notes }

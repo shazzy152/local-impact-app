@@ -18,6 +18,7 @@ function TransactionScreen() {
   const [formItem, setFormItem] = useState('')
   const [formQty, setFormQty] = useState('')
   const [formRate, setFormRate] = useState('')
+  const [formLuggage, setFormLuggage] = useState('')
   const [formUnit, setFormUnit] = useState('kgs')
   const [itemsList, setItemsList] = useState([])
   const [partiesList, setPartiesList] = useState([])
@@ -35,6 +36,7 @@ function TransactionScreen() {
       setFormItem(editingRow.item)
       setFormQty(editingRow.qty)
       setFormRate(editingRow.rate)
+      setFormLuggage(editingRow.luggage || '')
       setFormUnit(editingRow.unit || 'kgs')
     } else {
       setFormDate(today)
@@ -42,6 +44,7 @@ function TransactionScreen() {
       setFormItem('')
       setFormQty('')
       setFormRate('')
+      setFormLuggage('')
       setFormUnit('kgs')
     }
   }, [editingRow, today])
@@ -119,7 +122,7 @@ function TransactionScreen() {
 
   const handleSave = () => {
     const amount = computeAmount({ qty: formQty, rate: formRate })
-    const netTotal = amount
+    const netTotal = amount + (Number(formLuggage) || 0)
     
     const newRow = {
       id: editingRow ? editingRow.id : crypto.randomUUID(),
@@ -128,6 +131,7 @@ function TransactionScreen() {
       item: formItem,
       qty: Number(formQty),
       rate: Number(formRate),
+      luggage: Number(formLuggage) || 0,
       amount,
       unit: formUnit,
       netTotal
@@ -152,12 +156,13 @@ function TransactionScreen() {
     setFormItem('')
     setFormQty('')
     setFormRate('')
+    setFormLuggage('')
     setFormUnit('kgs')
   }
 
   // Calculate totals for display
   const rateTotal = computeAmount({ qty: formQty, rate: formRate })
-  const netTotal = rateTotal
+  const netTotal = rateTotal + (Number(formLuggage) || 0)
 
   const parties = [...new Set(rows.map(r => r.party))]
 
@@ -205,6 +210,9 @@ function TransactionScreen() {
                 <TableHeadCell onClick={() => handleSort('rate')} className="cursor-pointer text-right text-white">
                   Rate (₹) {sort.key === 'rate' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
+                <TableHeadCell onClick={() => handleSort('luggage')} className="cursor-pointer text-right text-white">
+                  Luggage (₹) {sort.key === 'luggage' && (sort.dir === 'asc' ? '▲' : '▼')}
+                </TableHeadCell>
                 <TableHeadCell onClick={() => handleSort('amount')} className="cursor-pointer text-right text-white">
                   Net Total (₹) {sort.key === 'amount' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
@@ -219,6 +227,7 @@ function TransactionScreen() {
                   <TableCell className="text-white">{row.item}</TableCell>
                   <TableCell className="text-right text-white">{row.qty}</TableCell>
                   <TableCell className="text-right text-white">₹{row.rate}</TableCell>
+                  <TableCell className="text-right text-white">₹{row.luggage || 0}</TableCell>
                   <TableCell className="text-right text-white">₹{row.amount}</TableCell>
                   <TableCell>
                     <Button size="sm" onClick={() => handleEdit(row)} className="mr-2 min-h-11 min-w-11">Edit</Button>
@@ -299,6 +308,12 @@ function TransactionScreen() {
                 </div>
               </div>
 
+              {/* Luggage Section */}
+              <div>
+                <Label htmlFor="luggage" className="block text-sm font-medium text-white mb-1">Luggage (₹)</Label>
+                <TextInput id="luggage" type="number" placeholder="0" value={formLuggage} onChange={(e) => setFormLuggage(e.target.value)} className="dark" />
+              </div>
+
               {/* Rate Section */}
               <div>
                 <Label htmlFor="rate" className="block text-sm font-medium text-white mb-1">Rate (₹)</Label>
@@ -315,7 +330,7 @@ function TransactionScreen() {
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-400 text-center">
-                  Net Total = Rate × Quantity ({formRate || 0} × {formQty || 0})
+                  Net Total = (Rate × Quantity) + Luggage ({formRate || 0} × {formQty || 0}) + ₹{formLuggage || 0}
                 </div>
               </div>
 
