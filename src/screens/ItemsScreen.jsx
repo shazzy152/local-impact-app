@@ -75,13 +75,33 @@ function ItemsScreen() {
   }
 
   const handleSave = () => {
-    if (!formName || !formUnit) {
-      alert('Please fill in all required fields.')
+    if (!formName || !formName.trim()) {
+      setToastMessage('Please enter an item name.')
+      setTimeout(() => setToastMessage(''), 3000)
       return
     }
+    
+    if (!formUnit) {
+      setToastMessage('Please select a unit.')
+      setTimeout(() => setToastMessage(''), 3000)
+      return
+    }
+
+    // Check for duplicate name (excluding the current editing row)
+    const existingItems = editingRow ? rows.filter(r => r.id !== editingRow.id) : rows
+    const nameExists = existingItems.some(item => 
+      item.name.toLowerCase() === formName.trim().toLowerCase()
+    )
+    
+    if (nameExists) {
+      setToastMessage('An item with this name already exists. Please use a different name.')
+      setTimeout(() => setToastMessage(''), 3000)
+      return
+    }
+
     const newRow = {
       id: editingRow ? editingRow.id : crypto.randomUUID(),
-      name: formName,
+      name: formName.trim(),
       unit: formUnit
     }
     let updated
@@ -134,7 +154,7 @@ function ItemsScreen() {
         </div>
 
         {toastMessage && (
-          <Toast className="fixed top-5 right-5">
+          <Toast className="fixed top-5 left-5 z-[60] border-2 border-red-500 max-w-xs w-auto">
             <div className="flex items-center">
               <div className="ml-3 text-sm font-normal">{toastMessage}</div>
             </div>
@@ -163,7 +183,7 @@ function ItemsScreen() {
             </div>
             <div className="flex justify-end space-x-2 p-4 border-t border-gray-700">
               <Button color="light" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>Save</Button>
+              <Button color="blue" size="lg" onClick={handleSave} className="px-8 font-semibold">Save</Button>
             </div>
           </div>
         </div>

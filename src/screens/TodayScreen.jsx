@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Badge, TextInput, Table, TableHead, TableHeadCell, TableBody, TableRow, TableCell, Button, Toast, Label } from 'flowbite-react'
-import { getToday, getTransactionsData, setTransactionsData, computeAmount } from '../lib/storage'
+import { getToday, getTransactionsData, setTransactionsData, computeAmount, getAdvanceData } from '../lib/storage'
 import Header from '../components/Header'
 
 function TodayScreen() {
@@ -8,18 +8,18 @@ function TodayScreen() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sort, setSort] = useState({ key: 'date', dir: 'asc' })
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
   const [showCalculateModal, setShowCalculateModal] = useState(false)
-  
+
   // Calculate modal form states
   const [calculateDate, setCalculateDate] = useState('')
   const [calculateCash, setCalculateCash] = useState('')
   const [calculateLoan, setCalculateLoan] = useState('')
   const [calculateAdvance, setCalculateAdvance] = useState('')
   const [calculateLuggage, setCalculateLuggage] = useState('')
-  
+
   const [toastMessage, setToastMessage] = useState('')
+  const [advanceData, setAdvanceData] = useState([])
   const today = getToday()
 
   useEffect(() => {
@@ -27,35 +27,39 @@ function TodayScreen() {
     return () => clearTimeout(timer)
   }, [search])
 
-  
+
 
   useEffect(() => {
-    // Get all transactions and filter based on date range
+    // Get all transactions and filter based on selected date
     let allTransactions = getTransactionsData()
     let filteredTransactions = allTransactions
-    
-    if (dateFrom && dateTo) {
-      // Filter by date range
-      filteredTransactions = allTransactions.filter(transaction => 
-        transaction.date >= dateFrom && transaction.date <= dateTo
-      )
-    } else if (dateFrom) {
-      // Filter from date onwards
-      filteredTransactions = allTransactions.filter(transaction => 
-        transaction.date >= dateFrom
-      )
-    } else if (dateTo) {
-      // Filter up to date
-      filteredTransactions = allTransactions.filter(transaction => 
-        transaction.date <= dateTo
+
+    if (selectedDate) {
+      // Filter by selected date
+      filteredTransactions = allTransactions.filter(transaction =>
+        transaction.date === selectedDate
       )
     } else {
-      // Default to today's transactions if no date filter is set
+      // Default to today's transactions if no date is selected
       filteredTransactions = allTransactions.filter(transaction => transaction.date === today)
     }
-    
+
     setRows(filteredTransactions)
-  }, [today, dateFrom, dateTo])
+  }, [today, selectedDate])
+
+  useEffect(() => {
+    // Load advance data
+    const advances = getAdvanceData()
+    setAdvanceData(advances)
+  }, [])
+
+  useEffect(() => {
+    // Auto-populate advance field when calculate date changes
+    if (calculateDate) {
+      const totalAdvance = getTotalAdvanceForDate(calculateDate)
+      setCalculateAdvance(totalAdvance.toString())
+    }
+  }, [calculateDate, advanceData])
 
   const handleSort = (key) => {
     setSort(prev => ({
@@ -79,19 +83,32 @@ function TodayScreen() {
     }
   })
 
-  
+
 
   const salesCount = rows.length
   const totalQty = rows.reduce((sum, row) => sum + Number(row.qty || 0), 0)
   const totalRevenue = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0)
   const formattedRevenue = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalRevenue)
 
+  // Function to get advance amount for a specific party and date
+  const getAdvanceAmount = (party, date) => {
+    const advance = advanceData.find(adv => adv.party === party && adv.date === date)
+    return advance ? advance.advance : 0
+  }
+
+  // Function to get total advance amount for a specific date
+  const getTotalAdvanceForDate = (date) => {
+    return advanceData
+      .filter(adv => adv.date === date)
+      .reduce((total, adv) => total + adv.advance, 0)
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Header onCalculateClick={() => setShowCalculateModal(true)} />
 
-  {/* Page Container */}
-  <main className="w-full px-4 py-3 mx-8">
+      {/* Page Container */}
+      <main className="w-full px-4 py-3 mx-8">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
           <Card className="bg-gray-800 border-gray-700 p-2 sm:p-4">
@@ -106,47 +123,33 @@ function TodayScreen() {
 
         {/* Date Filter Section */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
             <div>
-              <label htmlFor="dateFrom" className="block text-xs text-gray-400 mb-1">From:</label>
+              <label htmlFor="selectedDate" className="block text-xs text-gray-400 mb-1">Select Date:</label>
               <TextInput
-                id="dateFrom"
+                id="selectedDate"
                 type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="dark text-sm"
               />
             </div>
-            <div>
-              <label htmlFor="dateTo" className="block text-xs text-gray-400 mb-1">To:</label>
-              <TextInput
-                id="dateTo"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="dark text-sm"
-              />
-            </div>
-            <div>
-              <Button 
-                size="sm" 
-                color="gray" 
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                color="gray"
                 onClick={() => {
-                  setDateFrom(today)
-                  setDateTo(today)
+                  setSelectedDate(today)
                 }}
                 className="w-full"
               >
                 Today
               </Button>
-            </div>
-            <div>
-              <Button 
-                size="sm" 
-                color="gray" 
+              <Button
+                size="sm"
+                color="gray"
                 onClick={() => {
-                  setDateFrom('')
-                  setDateTo('')
+                  setSelectedDate('')
                 }}
                 className="w-full"
               >
@@ -191,6 +194,9 @@ function TodayScreen() {
                 <TableHeadCell onClick={() => handleSort('amount')} className="cursor-pointer text-right text-white">
                   Amount (₹) {sort.key === 'amount' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
+                <TableHeadCell className="text-right text-white">
+                  Advance (₹)
+                </TableHeadCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -203,6 +209,7 @@ function TodayScreen() {
                   <TableCell className="text-right text-white">₹{row.rate}</TableCell>
                   <TableCell className="text-right text-white">₹{row.luggage || 0}</TableCell>
                   <TableCell className="text-right text-white">₹{row.amount}</TableCell>
+                  <TableCell className="text-right text-white">₹{getAdvanceAmount(row.party, row.date)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -357,8 +364,8 @@ function TodayScreen() {
                 )}
               </div>
               <div className="flex justify-end gap-2 mt-6">
-                <Button 
-                  color="gray" 
+                <Button
+                  color="gray"
                   onClick={() => {
                     setCalculateDate('')
                     setCalculateCash('')
@@ -369,8 +376,8 @@ function TodayScreen() {
                 >
                   Clear
                 </Button>
-                <Button 
-                  color="blue" 
+                <Button
+                  color="blue"
                   onClick={() => {
                     setCalculateDate(today)
                   }}

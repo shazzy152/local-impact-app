@@ -1,34 +1,103 @@
-import { useState, useEffect } from 'react'
-import { Select, Table, TableHead, TableHeadCell, TableBody, TableRow, TableCell, TextInput } from 'flowbite-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Table, TableHead, TableHeadCell, TableBody, TableRow, TableCell, TextInput, Button } from 'flowbite-react'
 import Header from '../components/Header'
-import { getTransactionsData, getPartiesData } from '../lib/storage'
+import { getTransactionsData, getPartiesData, getToday } from '../lib/storage'
 
 function ReportsScreen() {
   const [parties, setParties] = useState([])
   const [selectedParty, setSelectedParty] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filteredParties, setFilteredParties] = useState([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [transactions, setTransactions] = useState([])
   const [filteredTransactions, setFilteredTransactions] = useState([])
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
   const [commission, setCommission] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const today = getToday()
+
+  // Debounced search function
+  const debounceSearch = useCallback((query) => {
+    // Show loading immediately when user starts typing (but not if party is already selected)
+    if (query.trim() && !selectedParty) {
+      setIsSearching(true)
+      setShowDropdown(true)
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (query.trim() && !selectedParty) {
+        const filtered = parties.filter(party =>
+          party.name.toLowerCase().includes(query.toLowerCase())
+        )
+        setFilteredParties(filtered)
+        setIsSearching(false)
+        setShowDropdown(true)
+      } else {
+        setFilteredParties([])
+        setShowDropdown(false)
+        setIsSearching(false)
+      }
+    }, 300) // 300ms debounce delay
+
+    return () => {
+      clearTimeout(timeoutId)
+      setIsSearching(false)
+    }
+  }, [parties, selectedParty])
 
   useEffect(() => {
     // Load parties and transactions data
     const partiesData = getPartiesData()
     const transactionsData = getTransactionsData()
-    
+
     setParties(partiesData)
     setTransactions(transactionsData)
   }, [])
 
   useEffect(() => {
-    // Filter transactions when party selection changes
+    const cleanup = debounceSearch(searchQuery)
+    return cleanup
+  }, [searchQuery, debounceSearch])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.party-search-container')) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    // Filter transactions when party selection or date range changes
     if (selectedParty) {
-      const filtered = transactions.filter(transaction => transaction.party === selectedParty)
+      let filtered = transactions.filter(transaction => transaction.party === selectedParty)
+      
+      // Apply date range filter
+      if (dateFrom && dateTo) {
+        filtered = filtered.filter(transaction => 
+          transaction.date >= dateFrom && transaction.date <= dateTo
+        )
+      } else if (dateFrom) {
+        filtered = filtered.filter(transaction => 
+          transaction.date >= dateFrom
+        )
+      } else if (dateTo) {
+        filtered = filtered.filter(transaction => 
+          transaction.date <= dateTo
+        )
+      }
+      
       setFilteredTransactions(filtered)
     } else {
       setFilteredTransactions([])
     }
-  }, [selectedParty, transactions])
+  }, [selectedParty, transactions, dateFrom, dateTo])
 
   const handleSort = (key) => {
     const newDir = sort.key === key && sort.dir === 'asc' ? 'desc' : 'asc'
@@ -38,12 +107,12 @@ function ReportsScreen() {
   const sortedRows = [...filteredTransactions].sort((a, b) => {
     let aVal = a[sort.key]
     let bVal = b[sort.key]
-    
+
     if (sort.key === 'qty' || sort.key === 'rate' || sort.key === 'luggage' || sort.key === 'amount') {
       aVal = Number(aVal)
       bVal = Number(bVal)
     }
-    
+
     if (aVal < bVal) return sort.dir === 'asc' ? -1 : 1
     if (aVal > bVal) return sort.dir === 'asc' ? 1 : -1
     return 0
@@ -53,25 +122,85 @@ function ReportsScreen() {
     <div className="min-h-screen bg-gray-900 text-white">
       <Header />
       <main className="w-full px-4 py-3 mx-8">
-        
-        {/* Party Selection Dropdown */}
-        <div className="mb-6">
-          <label htmlFor="party-select" className="block text-sm font-medium text-white mb-2">
-            Select Party
+
+        {/* Party Search Input */}
+        <div className="mb-6 relative party-search-container">
+          <label htmlFor="party-search" className="block text-sm font-medium text-white mb-2">
+            Search Party
           </label>
-          <Select 
-            id="party-select"
-            value={selectedParty} 
-            onChange={(e) => setSelectedParty(e.target.value)}
+          <TextInput
+            id="party-search"
+            type="text"
+            placeholder="Type to search for a party..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => searchQuery && !selectedParty && setShowDropdown(true)}
+            onBlur={() => {
+              // Delay hiding dropdown to allow click events to register
+              setTimeout(() => setShowDropdown(false), 150)
+            }}
             className="w-full max-w-md"
-          >
-            <option value="">Choose a party...</option>
-            {parties.map((party) => (
-              <option key={party.id} value={party.name}>
-                {party.name}
-              </option>
-            ))}
-          </Select>
+          />
+
+          {/* Loading Spinner */}
+          {showDropdown && isSearching && (
+            <div className="absolute z-10 w-full max-w-md mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
+              <div className="px-4 py-3 flex items-center gap-3 text-gray-300">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-blue-400"></div>
+                <span className="text-sm">Searching...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Search Results Dropdown */}
+          {showDropdown && !isSearching && filteredParties.length > 0 && (
+            <div className="absolute z-10 w-full max-w-md mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredParties.map((party) => (
+                <div
+                  key={party.id}
+                  className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white border-b border-gray-700 last:border-b-0"
+                  onClick={() => {
+                    setSelectedParty(party.name)
+                    setSearchQuery(party.name)
+                    setShowDropdown(false)
+                    setIsSearching(false)
+                    // Remove focus from input to prevent dropdown from reopening
+                    document.getElementById('party-search')?.blur()
+                  }}
+                >
+                  {party.name}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No results message */}
+          {showDropdown && !isSearching && searchQuery && filteredParties.length === 0 && (
+            <div className="absolute z-10 w-full max-w-md mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
+              <div className="px-4 py-2 text-gray-400">
+                No parties found matching "{searchQuery}"
+              </div>
+            </div>
+          )}
+
+          {/* Selected party display */}
+          {selectedParty && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-sm text-gray-300">Selected:</span>
+              <span className="text-sm font-medium text-blue-400">{selectedParty}</span>
+              <button
+                onClick={() => {
+                  setSelectedParty('')
+                  setSearchQuery('')
+                  setShowDropdown(false)
+                  setIsSearching(false)
+                }}
+                className="text-red-400 hover:text-red-300 text-sm ml-2"
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Transaction Table */}
@@ -80,7 +209,7 @@ function ReportsScreen() {
             <h3 className="text-xl font-semibold mb-4">
               Transactions for: <span className="text-blue-400">{selectedParty}</span>
             </h3>
-            
+
             {filteredTransactions.length > 0 ? (
               <>
                 {/* Summary Section */}
@@ -100,7 +229,7 @@ function ReportsScreen() {
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Commission input and amount in one row */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="bg-gray-700 rounded-lg p-4">
@@ -150,6 +279,58 @@ function ReportsScreen() {
                           return netTotal.toLocaleString();
                         })()}
                       </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date Filter Section */}
+                <div className="bg-gray-700 border border-gray-600 rounded-lg p-3 mb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+                    <div>
+                      <label htmlFor="dateFrom" className="block text-xs text-gray-300 mb-1">From:</label>
+                      <TextInput
+                        id="dateFrom"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="dark text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="dateTo" className="block text-xs text-gray-300 mb-1">To:</label>
+                      <TextInput
+                        id="dateTo"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="dark text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Button 
+                        size="sm" 
+                        color="gray" 
+                        onClick={() => {
+                          setDateFrom(today)
+                          setDateTo(today)
+                        }}
+                        className="w-full"
+                      >
+                        Today
+                      </Button>
+                    </div>
+                    <div>
+                      <Button 
+                        size="sm" 
+                        color="gray" 
+                        onClick={() => {
+                          setDateFrom('')
+                          setDateTo('')
+                        }}
+                        className="w-full"
+                      >
+                        Clear
+                      </Button>
                     </div>
                   </div>
                 </div>

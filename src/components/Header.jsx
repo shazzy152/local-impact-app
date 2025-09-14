@@ -12,7 +12,7 @@ function Header({ onAddClick, onCalculateClick }) {
 
   // Check if current route supports adding
   const getCanAdd = () => {
-    return ['/transactions', '/parties', '/items'].includes(location.pathname)
+    return ['/transactions', '/parties', '/items', '/advance'].includes(location.pathname)
   }
 
   // Get current screen name based on route
@@ -28,6 +28,8 @@ function Header({ onAddClick, onCalculateClick }) {
         return 'Parties'
       case '/items':
         return 'Items'
+      case '/advance':
+        return 'Advance'
       default:
         return 'App'
     }
@@ -110,6 +112,9 @@ function Header({ onAddClick, onCalculateClick }) {
               <Link to="/items">
                 <Button size="sm" color="light">Items</Button>
               </Link>
+              <Link to="/advance">
+                <Button size="sm" color="light">Advance</Button>
+              </Link>
             </div>
           </div>
 
@@ -168,6 +173,9 @@ function Header({ onAddClick, onCalculateClick }) {
                   </Link>
                   <Link to="/items" onClick={() => setOpen(false)}>
                     <Button color="light" className="w-full justify-center">Items</Button>
+                  </Link>
+                  <Link to="/advance" onClick={() => setOpen(false)}>
+                    <Button color="light" className="w-full justify-center">Advance</Button>
                   </Link>
                   <div className="border-t border-gray-700 my-2"></div>
                   <Button color="failure" onClick={() => { handlePurge(); setOpen(false); }} className="w-full justify-center">

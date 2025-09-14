@@ -4,6 +4,7 @@ import TransactionScreen from './screens/TransactionScreen.jsx'
 import PartiesScreen from './screens/PartiesScreen.jsx'
 import ItemsScreen from './screens/ItemsScreen.jsx'
 import ReportsScreen from './screens/ReportsScreen.jsx'
+import AdvanceScreen from './screens/AdvanceScreen.jsx'
 
 function App() {
   console.log('App component rendering')
@@ -15,6 +16,7 @@ function App() {
         <Route path="/parties" element={<PartiesScreen />} />
         <Route path="/items" element={<ItemsScreen />} />
         <Route path="/reports" element={<ReportsScreen />} />
+        <Route path="/advance" element={<AdvanceScreen />} />
       </Routes>
     </Router>
   )

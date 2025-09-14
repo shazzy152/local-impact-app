@@ -86,12 +86,12 @@ function PartiesScreen() {
 
     // Check for duplicate name or phone (excluding the current editing row)
     const existingParties = editingRow ? rows.filter(r => r.id !== editingRow.id) : rows
-    
+
     // Check if party name already exists
-    const nameExists = existingParties.some(party => 
+    const nameExists = existingParties.some(party =>
       party.name.toLowerCase() === formName.toLowerCase()
     )
-    
+
     if (nameExists) {
       setToastMessage('A party with this name already exists. Please use a different name.')
       setTimeout(() => setToastMessage(''), 3000)
@@ -100,10 +100,10 @@ function PartiesScreen() {
 
     // Check if phone already exists (only if phone is provided)
     if (formPhone && formPhone.trim()) {
-      const phoneExists = existingParties.some(party => 
+      const phoneExists = existingParties.some(party =>
         party.phone && party.phone.toLowerCase() === formPhone.toLowerCase()
       )
-      
+
       if (phoneExists) {
         setToastMessage('A party with this phone number already exists. Please use a different phone number.')
         setTimeout(() => setToastMessage(''), 3000)
@@ -169,7 +169,7 @@ function PartiesScreen() {
         </div>
 
         {toastMessage && (
-          <Toast className="fixed top-5 right-5 z-[60] border-2 border-red-500">
+          <Toast className="fixed top-5 left-8 z-[60] border-2 border-red-500 max-w-xs w-auto">
             <div className="flex items-center">
               <div className="ml-3 text-sm font-normal">{toastMessage}</div>
             </div>
@@ -200,7 +200,7 @@ function PartiesScreen() {
             </div>
             <div className="flex justify-end space-x-2 p-4 border-t border-gray-700">
               <Button color="light" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>Save</Button>
+              <Button color="blue" size="lg" onClick={handleSave} className="px-8 font-semibold">Save</Button>
             </div>
           </div>
         </div>

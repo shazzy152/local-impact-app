@@ -41,6 +41,14 @@ export function setItemsData(rows) {
   localStorage.setItem('items', JSON.stringify(rows));
 }
 
+export function getAdvanceData() {
+  return JSON.parse(localStorage.getItem('advances') || '[]');
+}
+
+export function setAdvanceData(rows) {
+  localStorage.setItem('advances', JSON.stringify(rows));
+}
+
 export function computeAmount({ qty, rate, luggage = 0 }) {
   return Number(qty) * Number(rate) + Number(luggage);
 }
@@ -49,3 +57,4 @@ export function computeAmount({ qty, rate, luggage = 0 }) {
 // Row shape for Transactions table: { id, date, party, item, qty, rate, luggage, amount, mode, notes, status }
 // Row shape for Items table: { id, name, unit, rate, notes }
 // Row shape for Parties table: { id, name, phone, address, notes }
+// Row shape for Advance table: { id, party, date, advance }
