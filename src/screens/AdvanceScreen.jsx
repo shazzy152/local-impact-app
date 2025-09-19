@@ -190,7 +190,7 @@ function AdvanceScreen() {
     // Clear form and close modal
     setSelectedParty('')
     setPartySearchQuery('')
-    setSelectedDate('')
+    setSelectedDate(today)
     setAdvanceAmount('')
     setEditingRecord(null)
     setIsModalOpen(false)
@@ -216,7 +216,7 @@ function AdvanceScreen() {
     setEditingRecord(null)
     setSelectedParty('')
     setPartySearchQuery('')
-    setSelectedDate('')
+    setSelectedDate(today)
     setAdvanceAmount('')
     setIsModalOpen(false)
   }
@@ -245,10 +245,10 @@ function AdvanceScreen() {
 
         {/* Party Search for Table */}
         {advanceRecords.length > 0 && (
-          <div className="mt-8">
-            <div className="mb-6 relative table-search-container max-w-md">
+          <div className="mb-6">
+            <div className="relative table-search-container max-w-md">
               <Label htmlFor="table-party-search" className="block text-sm font-medium text-white mb-2">
-                Search Party (View Total Advance)
+                Filter by Party (Optional)
               </Label>
               <TextInput
                 id="table-party-search"
@@ -260,6 +260,7 @@ function AdvanceScreen() {
                 onBlur={() => {
                   setTimeout(() => setShowTableDropdown(false), 150)
                 }}
+                disabled={tableSearchParty}
                 className="dark w-full"
               />
 
@@ -307,10 +308,7 @@ function AdvanceScreen() {
               {tableSearchParty && (
                 <div className="mt-3 p-3 bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm text-gray-300">Party:</span>
-                      <span className="text-sm font-medium text-blue-400 ml-2">{tableSearchParty}</span>
-                    </div>
+                    <span className="text-sm font-medium text-blue-400">Filtered by: {tableSearchParty}</span>
                     <button
                       onClick={() => {
                         setTableSearchParty('')
@@ -318,9 +316,9 @@ function AdvanceScreen() {
                         setShowTableDropdown(false)
                         setIsTableSearching(false)
                       }}
-                      className="text-red-400 hover:text-red-300 text-sm"
+                      className="px-3 py-1 text-sm text-white bg-transparent border border-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
                     >
-                      Clear
+                      Clear Filter
                     </button>
                   </div>
                   <div className="mt-2">
@@ -335,9 +333,11 @@ function AdvanceScreen() {
         )}
 
         {/* Advance Records Table */}
-        {advanceRecords.length > 0 && (
+        {advanceRecords.length > 0 ? (
           <div>
-            <h2 className="text-xl font-semibold text-white mb-4">Advance Records</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Advance Records {tableSearchParty && `- ${tableSearchParty}`}
+            </h2>
             <div className="overflow-x-auto">
               <Table>
                 <TableHead className="bg-gray-700">
@@ -349,33 +349,43 @@ function AdvanceScreen() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {advanceRecords.map((record, index) => (
-                    <TableRow key={record.id} className={index % 2 === 1 ? "bg-gray-700" : "bg-gray-800"}>
-                      <TableCell className="text-white">{record.party}</TableCell>
-                      <TableCell className="text-white">{record.date}</TableCell>
-                      <TableCell className="text-right text-white">₹{record.advance.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          onClick={() => handleEdit(record)}
-                          className="mr-2 min-h-11 min-w-11"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          color="failure"
-                          onClick={() => handleDelete(record)}
-                          className="min-h-11 min-w-11"
-                        >
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {advanceRecords
+                    .filter(record =>
+                      !tableSearchParty || 
+                      record.party.trim().toLowerCase() === tableSearchParty.trim().toLowerCase()
+                    )
+                    .map((record, index) => (
+                      <TableRow key={record.id} className={index % 2 === 1 ? "bg-gray-700" : "bg-gray-800"}>
+                        <TableCell className="text-white">{record.party}</TableCell>
+                        <TableCell className="text-white">{record.date}</TableCell>
+                        <TableCell className="text-right text-white">₹{record.advance.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => handleEdit(record)}
+                            className="mr-2 min-h-11 min-w-11"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            color="failure"
+                            onClick={() => handleDelete(record)}
+                            className="min-h-11 min-w-11"
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-lg mb-4">No advance records found</div>
+            <div className="text-gray-500 text-sm">Click the "+" button to add your first advance record</div>
           </div>
         )}
       </main>
@@ -387,7 +397,7 @@ function AdvanceScreen() {
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
               <h3 className="text-lg font-semibold text-white">{editingRecord ? 'Edit Advance' : 'Add Advance'}</h3>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={handleCancel}
                 className="text-gray-400 hover:text-white"
               >
                 ✕
@@ -395,7 +405,7 @@ function AdvanceScreen() {
             </div>
             <div className="p-4 space-y-4">
               {/* Party Search Input */}
-              <div className="relative party-search-container">
+              <div className="relative party-search-container mb-0">
                 <Label htmlFor="party-search" className="block text-sm font-medium text-white mb-2">
                   Party
                 </Label>
@@ -409,6 +419,7 @@ function AdvanceScreen() {
                   onBlur={() => {
                     setTimeout(() => setShowPartyDropdown(false), 150)
                   }}
+                  disabled={selectedParty}
                   className="dark w-full"
                 />
 
@@ -454,9 +465,8 @@ function AdvanceScreen() {
 
                 {/* Selected party display */}
                 {selectedParty && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-sm text-gray-300">Selected:</span>
-                    <span className="text-sm font-medium text-blue-400">{selectedParty}</span>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-400"></span>
                     <button
                       onClick={() => {
                         setSelectedParty('')
@@ -464,7 +474,7 @@ function AdvanceScreen() {
                         setShowPartyDropdown(false)
                         setIsPartySearching(false)
                       }}
-                      className="text-red-400 hover:text-red-300 text-sm ml-2"
+                      className="px-3 py-1 text-sm text-white bg-transparent border border-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
                     >
                       Clear
                     </button>

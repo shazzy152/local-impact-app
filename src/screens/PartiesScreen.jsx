@@ -120,6 +120,14 @@ function PartiesScreen() {
     const updated = editingRow ? rows.map(r => r.id === editingRow.id ? newRow : r) : [...rows, newRow]
     setRows(updated)
     setPartiesData(updated)
+    
+    // Clear form only for new entries (not edits)
+    if (!editingRow) {
+      setFormName('')
+      setFormPhone('')
+      setFormAddress('')
+    }
+    
     setIsModalOpen(false)
     setEditingRow(null)
     setToastMessage(editingRow ? 'Party updated successfully!' : 'Party added successfully!')

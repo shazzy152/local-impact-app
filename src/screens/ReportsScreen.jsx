@@ -77,22 +77,22 @@ function ReportsScreen() {
     // Filter transactions when party selection or date range changes
     if (selectedParty) {
       let filtered = transactions.filter(transaction => transaction.party === selectedParty)
-      
+
       // Apply date range filter
       if (dateFrom && dateTo) {
-        filtered = filtered.filter(transaction => 
+        filtered = filtered.filter(transaction =>
           transaction.date >= dateFrom && transaction.date <= dateTo
         )
       } else if (dateFrom) {
-        filtered = filtered.filter(transaction => 
+        filtered = filtered.filter(transaction =>
           transaction.date >= dateFrom
         )
       } else if (dateTo) {
-        filtered = filtered.filter(transaction => 
+        filtered = filtered.filter(transaction =>
           transaction.date <= dateTo
         )
       }
-      
+
       setFilteredTransactions(filtered)
     } else {
       setFilteredTransactions([])
@@ -124,7 +124,7 @@ function ReportsScreen() {
       <main className="w-full px-4 py-3 mx-8">
 
         {/* Party Search Input */}
-        <div className="mb-6 relative party-search-container">
+        <div className="mb-2 relative party-search-container">
           <label htmlFor="party-search" className="block text-sm font-medium text-white mb-2">
             Search Party
           </label>
@@ -139,6 +139,7 @@ function ReportsScreen() {
               // Delay hiding dropdown to allow click events to register
               setTimeout(() => setShowDropdown(false), 150)
             }}
+            disabled={selectedParty}
             className="w-full max-w-md"
           />
 
@@ -185,9 +186,8 @@ function ReportsScreen() {
 
           {/* Selected party display */}
           {selectedParty && (
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-sm text-gray-300">Selected:</span>
-              <span className="text-sm font-medium text-blue-400">{selectedParty}</span>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-400"></span>
               <button
                 onClick={() => {
                   setSelectedParty('')
@@ -195,7 +195,7 @@ function ReportsScreen() {
                   setShowDropdown(false)
                   setIsSearching(false)
                 }}
-                className="text-red-400 hover:text-red-300 text-sm ml-2"
+                className="px-3 py-1 text-sm text-white bg-transparent border border-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
               >
                 Clear
               </button>
@@ -307,9 +307,9 @@ function ReportsScreen() {
                       />
                     </div>
                     <div>
-                      <Button 
-                        size="sm" 
-                        color="gray" 
+                      <Button
+                        size="sm"
+                        color="gray"
                         onClick={() => {
                           setDateFrom(today)
                           setDateTo(today)
@@ -320,9 +320,9 @@ function ReportsScreen() {
                       </Button>
                     </div>
                     <div>
-                      <Button 
-                        size="sm" 
-                        color="gray" 
+                      <Button
+                        size="sm"
+                        color="gray"
                         onClick={() => {
                           setDateFrom('')
                           setDateTo('')

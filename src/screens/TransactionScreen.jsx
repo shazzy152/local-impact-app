@@ -118,6 +118,13 @@ function TransactionScreen() {
     }
   }, [isModalOpen])
 
+  // Ensure modal always opens with today's date for new entries
+  useEffect(() => {
+    if (isModalOpen && !editingRow) {
+      setFormDate(today)
+    }
+  }, [isModalOpen, editingRow, today])
+
   useEffect(() => {
     let data = getTransactionsData()
     // Remove seed data - start with empty data after purge
@@ -248,6 +255,20 @@ function TransactionScreen() {
 
     // Close modal after showing success message
     setTimeout(() => {
+      // Clear form only for new entries (not edits)
+      if (!editingRow) {
+        setFormDate(today)
+        setFormParty('')
+        setPartySearchQuery('')
+        setFormItem('')
+        setFormQty('')
+        setFormRate('')
+        setFormLuggage('')
+        setFormUnit('kgs')
+        setShowPartyDropdown(false)
+        setIsPartySearching(false)
+      }
+      
       setIsModalOpen(false)
       setEditingRow(null)
       setModalSuccessMessage('')
@@ -285,7 +306,11 @@ function TransactionScreen() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Header onAddClick={() => { setEditingRow(null); setIsModalOpen(true); }} />
+      <Header onAddClick={() => { 
+        setEditingRow(null); 
+        setFormDate(today); 
+        setIsModalOpen(true); 
+      }} />
 
       {/* Page Container */}
       <main className="w-full px-4 py-3 mx-8">
@@ -414,7 +439,7 @@ function TransactionScreen() {
               </div>
 
               {/* Party Search - Full Width */}
-              <div className="relative party-search-container">
+              <div className="relative party-search-container mb-0">
                 <Label htmlFor="party-search" className="block text-sm font-medium text-white mb-1">Party</Label>
                 <TextInput
                   id="party-search"
@@ -426,6 +451,7 @@ function TransactionScreen() {
                   onBlur={() => {
                     setTimeout(() => setShowPartyDropdown(false), 150)
                   }}
+                  disabled={formParty}
                   className="dark w-full"
                 />
 
@@ -471,9 +497,8 @@ function TransactionScreen() {
 
                 {/* Selected party display */}
                 {formParty && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-sm text-gray-300">Selected:</span>
-                    <span className="text-sm font-medium text-blue-400">{formParty}</span>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-400"></span>
                     <button
                       onClick={() => {
                         setFormParty('')
@@ -481,7 +506,7 @@ function TransactionScreen() {
                         setShowPartyDropdown(false)
                         setIsPartySearching(false)
                       }}
-                      className="text-red-400 hover:text-red-300 text-sm ml-2"
+                      className="px-3 py-1 text-sm text-white bg-transparent border border-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
                     >
                       Clear
                     </button>
@@ -529,23 +554,18 @@ function TransactionScreen() {
                 <TextInput id="rate" type="number" placeholder={`Rate per ${formUnit}`} value={formRate} onChange={(e) => setFormRate(e.target.value)} className="dark" />
               </div>
 
-              {/* Total Calculation Box */}
+              {/* Net Total Display */}
               <div className="bg-gray-700 rounded-lg p-4">
-                <Label className="block text-sm font-medium text-white mb-3">Calculation Summary</Label>
                 <div className="flex justify-center">
                   <div className="bg-blue-600 rounded p-3 text-center w-full max-w-xs">
                     <div className="text-xs text-gray-200 mb-1">Net Total</div>
                     <div className="text-lg font-bold text-white">₹{netTotal.toFixed(2)}</div>
                   </div>
                 </div>
-                <div className="mt-2 text-xs text-gray-400 text-center">
-                  Net Total = (Rate × Quantity) - Luggage ({formRate || 0} × {formQty || 0}) - ₹{formLuggage || 0}
-                </div>
               </div>
 
             </div>
-            <div className="flex justify-between p-4 border-t border-gray-700">
-              <Button color="gray" onClick={handleClear}>Clear</Button>
+            <div className="flex justify-end p-4 border-t border-gray-700">
               <div className="flex space-x-2">
                 <Button color="light" onClick={() => {
                   setIsModalOpen(false)

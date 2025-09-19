@@ -80,7 +80,7 @@ function ItemsScreen() {
       setTimeout(() => setToastMessage(''), 3000)
       return
     }
-    
+
     if (!formUnit) {
       setToastMessage('Please select a unit.')
       setTimeout(() => setToastMessage(''), 3000)
@@ -89,10 +89,10 @@ function ItemsScreen() {
 
     // Check for duplicate name (excluding the current editing row)
     const existingItems = editingRow ? rows.filter(r => r.id !== editingRow.id) : rows
-    const nameExists = existingItems.some(item => 
+    const nameExists = existingItems.some(item =>
       item.name.toLowerCase() === formName.trim().toLowerCase()
     )
-    
+
     if (nameExists) {
       setToastMessage('An item with this name already exists. Please use a different name.')
       setTimeout(() => setToastMessage(''), 3000)
@@ -109,6 +109,13 @@ function ItemsScreen() {
     else updated = [...rows, newRow]
     setRows(updated)
     setItemsData(updated)
+
+    // Clear form only for new entries (not edits)
+    if (!editingRow) {
+      setFormName('')
+      setFormUnit('kgs')
+    }
+
     setIsModalOpen(false)
     setEditingRow(null)
     setToastMessage(editingRow ? 'Item updated successfully!' : 'Item added successfully!')

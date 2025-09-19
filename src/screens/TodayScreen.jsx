@@ -54,10 +54,13 @@ function TodayScreen() {
   }, [])
 
   useEffect(() => {
-    // Auto-populate advance field when calculate date changes
+    // Auto-populate advance and luggage fields when calculate date changes
     if (calculateDate) {
       const totalAdvance = getTotalAdvanceForDate(calculateDate)
       setCalculateAdvance(totalAdvance.toString())
+
+      const totalLuggage = getTotalLuggageForDate(calculateDate)
+      setCalculateLuggage(totalLuggage.toString())
     }
   }, [calculateDate, advanceData])
 
@@ -103,9 +106,19 @@ function TodayScreen() {
       .reduce((total, adv) => total + adv.advance, 0)
   }
 
+  // Function to get total luggage amount for a specific date
+  const getTotalLuggageForDate = (date) => {
+    return getTransactionsData()
+      .filter(transaction => transaction.date === date)
+      .reduce((total, transaction) => total + Number(transaction.luggage || 0), 0)
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Header onCalculateClick={() => setShowCalculateModal(true)} />
+      <Header onCalculateClick={() => {
+        setCalculateDate(today)
+        setShowCalculateModal(true)
+      }} />
 
       {/* Page Container */}
       <main className="w-full px-4 py-3 mx-8">
@@ -194,9 +207,6 @@ function TodayScreen() {
                 <TableHeadCell onClick={() => handleSort('amount')} className="cursor-pointer text-right text-white">
                   Amount (₹) {sort.key === 'amount' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell className="text-right text-white">
-                  Advance (₹)
-                </TableHeadCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -209,7 +219,6 @@ function TodayScreen() {
                   <TableCell className="text-right text-white">₹{row.rate}</TableCell>
                   <TableCell className="text-right text-white">₹{row.luggage || 0}</TableCell>
                   <TableCell className="text-right text-white">₹{row.amount}</TableCell>
-                  <TableCell className="text-right text-white">₹{getAdvanceAmount(row.party, row.date)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
