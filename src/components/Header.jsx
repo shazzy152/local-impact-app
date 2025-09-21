@@ -81,7 +81,7 @@ function Header({ onAddClick, onCalculateClick }) {
   }, [open])
 
   return (
-    <header className="sticky top-0 bg-gray-800 shadow-sm z-10">
+    <header className="sticky top-0 bg-gray-800 shadow-sm z-40">
       <div className="w-full px-4 py-3 mx-8">
         <div className="flex justify-between items-center relative">
           {/* Left: Nav (desktop) / Hamburger (mobile) */}
@@ -163,7 +163,7 @@ function Header({ onAddClick, onCalculateClick }) {
 
           {/* Mobile dropdown menu */}
           {open && (
-            <div ref={menuRef} className="mobile-dropdown absolute left-0 right-0 top-full mt-2 z-20">
+            <div ref={menuRef} className="mobile-dropdown absolute left-0 right-0 top-full mt-2 z-50">
               <div className="mx-auto w-full max-w-sm bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-2">
                 <div className="flex flex-col gap-2">
                   <Link to="/" onClick={() => setOpen(false)}>
