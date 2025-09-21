@@ -39,6 +39,7 @@ function TransactionScreen() {
   const [modalErrorMessage, setModalErrorMessage] = useState('')
   const [modalSuccessMessage, setModalSuccessMessage] = useState('')
   const modalRef = useRef(null)
+  const hasPrefilledDriverRef = useRef(false)
   const today = getToday()
 
   useEffect(() => {
@@ -103,6 +104,7 @@ function TransactionScreen() {
   }, [vendorsList])
 
   useEffect(() => {
+    hasPrefilledDriverRef.current = false
     if (editingRow) {
       setFormDate(editingRow.date)
       setFormParty(editingRow.party)
@@ -160,6 +162,22 @@ function TransactionScreen() {
       setFormDriver('')
     }
   }, [formParty, partiesList, editingRow])
+
+  useEffect(() => {
+    if (!editingRow || hasPrefilledDriverRef.current) return
+    if (!editingRow.driver) {
+      hasPrefilledDriverRef.current = true
+      return
+    }
+    if (formParty !== editingRow.party) return
+
+    const driverExists = availableDrivers.some(driver => driver.name === editingRow.driver)
+
+    if (driverExists && !formDriver) {
+      setFormDriver(editingRow.driver)
+      hasPrefilledDriverRef.current = true
+    }
+  }, [editingRow, formParty, availableDrivers, formDriver])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -419,9 +437,9 @@ function TransactionScreen() {
 
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[calc(100vh-100px)]">
           <Table>
-            <TableHead className="sticky top-0 bg-gray-800">
+            <TableHead className="sticky top-0 bg-gray-800 z-10">
               <TableRow>
                 <TableHeadCell onClick={() => handleSort('date')} className="cursor-pointer text-white">
                   Date {sort.key === 'date' && (sort.dir === 'asc' ? '▲' : '▼')}

@@ -219,9 +219,9 @@ function TodayScreen() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[calc(100vh-200px)]">
           <Table>
-            <TableHead className="sticky top-0 bg-gray-800">
+            <TableHead className="sticky top-0 bg-gray-800 z-10">
               <TableRow>
                 <TableHeadCell onClick={() => handleSort('date')} className="cursor-pointer text-white">
                   Date {sort.key === 'date' && (sort.dir === 'asc' ? '▲' : '▼')}
