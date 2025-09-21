@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Button } from 'flowbite-react'
 import { useEffect, useRef, useState } from 'react'
-import { setTodayData, setTransactionsData, setPartiesData, setItemsData } from '../lib/storage'
+import { setTodayData, setTransactionsData, setPartiesData, setItemsData, setVendorsData, setAdvanceData } from '../lib/storage'
 import { getDummyData } from '../lib/dummyData'
 
 function Header({ onAddClick, onCalculateClick }) {
@@ -12,7 +12,7 @@ function Header({ onAddClick, onCalculateClick }) {
 
   // Check if current route supports adding
   const getCanAdd = () => {
-    return ['/transactions', '/parties', '/items', '/advance'].includes(location.pathname)
+    return ['/transactions', '/parties', '/items', '/advance', '/vendors'].includes(location.pathname)
   }
 
   // Get current screen name based on route
@@ -25,11 +25,13 @@ function Header({ onAddClick, onCalculateClick }) {
       case '/reports':
         return 'Reports'
       case '/parties':
-        return 'Parties'
+        return 'Groups'
       case '/items':
         return 'Items'
       case '/advance':
         return 'Advance'
+      case '/vendors':
+        return 'Vendors'
       default:
         return 'App'
     }
@@ -46,9 +48,11 @@ function Header({ onAddClick, onCalculateClick }) {
     if (window.confirm('Load dummy data? This will replace existing data.')) {
       const dummyData = getDummyData()
       setPartiesData(dummyData.parties)
+      setVendorsData(dummyData.vendors)
       setItemsData(dummyData.items)
       setTodayData(dummyData.today)
       setTransactionsData(dummyData.transactions)
+      setAdvanceData(dummyData.advances)
       window.location.reload()
     }
   }
@@ -107,7 +111,10 @@ function Header({ onAddClick, onCalculateClick }) {
                 <Button size="sm" color="light">Reports</Button>
               </Link>
               <Link to="/parties">
-                <Button size="sm" color="light">Parties</Button>
+                <Button size="sm" color="light">Groups</Button>
+              </Link>
+              <Link to="/vendors">
+                <Button size="sm" color="light">Vendors</Button>
               </Link>
               <Link to="/items">
                 <Button size="sm" color="light">Items</Button>
@@ -169,7 +176,10 @@ function Header({ onAddClick, onCalculateClick }) {
                     <Button color="light" className="w-full justify-center">Reports</Button>
                   </Link>
                   <Link to="/parties" onClick={() => setOpen(false)}>
-                    <Button color="light" className="w-full justify-center">Parties</Button>
+                    <Button color="light" className="w-full justify-center">Groups</Button>
+                  </Link>
+                  <Link to="/vendors" onClick={() => setOpen(false)}>
+                    <Button color="light" className="w-full justify-center">Vendors</Button>
                   </Link>
                   <Link to="/items" onClick={() => setOpen(false)}>
                     <Button color="light" className="w-full justify-center">Items</Button>

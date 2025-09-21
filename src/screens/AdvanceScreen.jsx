@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { TextInput, Label, Button, Table, TableHead, TableHeadCell, TableBody, TableRow, TableCell, Toast } from 'flowbite-react'
+import { TextInput, Label, Button, Table, TableHead, TableHeadCell, TableBody, TableRow, TableCell } from 'flowbite-react'
 import Header from '../components/Header'
+import Toast from '../components/Toast'
 import { getPartiesData, getToday, getAdvanceData, setAdvanceData } from '../lib/storage'
 
 function AdvanceScreen() {
@@ -26,17 +27,22 @@ function AdvanceScreen() {
 
   // Debounced party search function
   const debouncePartySearch = useCallback((query) => {
-    if (query.trim() && !selectedParty) {
+    if (!selectedParty) {
       setIsPartySearching(true)
       setShowPartyDropdown(true)
     }
 
     const timeoutId = setTimeout(() => {
-      if (query.trim() && !selectedParty) {
-        const filtered = partiesList.filter(party =>
-          party.name.toLowerCase().includes(query.toLowerCase())
-        )
-        setFilteredParties(filtered)
+      if (!selectedParty) {
+        if (query.trim()) {
+          const filtered = partiesList.filter(party =>
+            party.name.toLowerCase().includes(query.toLowerCase())
+          )
+          setFilteredParties(filtered)
+        } else {
+          // Show all parties if no search query
+          setFilteredParties(partiesList)
+        }
         setIsPartySearching(false)
         setShowPartyDropdown(true)
       } else {
@@ -54,17 +60,22 @@ function AdvanceScreen() {
 
   // Debounced table search function
   const debounceTableSearch = useCallback((query) => {
-    if (query.trim() && !tableSearchParty) {
+    if (!tableSearchParty) {
       setIsTableSearching(true)
       setShowTableDropdown(true)
     }
 
     const timeoutId = setTimeout(() => {
-      if (query.trim() && !tableSearchParty) {
-        const filtered = partiesList.filter(party =>
-          party.name.toLowerCase().includes(query.toLowerCase())
-        )
-        setTableFilteredParties(filtered)
+      if (!tableSearchParty) {
+        if (query.trim()) {
+          const filtered = partiesList.filter(party =>
+            party.name.toLowerCase().includes(query.toLowerCase())
+          )
+          setTableFilteredParties(filtered)
+        } else {
+          // Show all parties if no search query
+          setTableFilteredParties(partiesList)
+        }
         setIsTableSearching(false)
         setShowTableDropdown(true)
       } else {
@@ -148,19 +159,16 @@ function AdvanceScreen() {
     // Validation
     if (!selectedParty) {
       setToastMessage('Please select a party.')
-      setTimeout(() => setToastMessage(''), 3000)
       return
     }
 
     if (!selectedDate) {
       setToastMessage('Please select a date.')
-      setTimeout(() => setToastMessage(''), 3000)
       return
     }
 
     if (!advanceAmount || Number(advanceAmount) <= 0) {
       setToastMessage('Please enter a valid advance amount.')
-      setTimeout(() => setToastMessage(''), 3000)
       return
     }
 
@@ -194,7 +202,6 @@ function AdvanceScreen() {
     setAdvanceAmount('')
     setEditingRecord(null)
     setIsModalOpen(false)
-    setTimeout(() => setToastMessage(''), 3000)
   }
 
   const handleEdit = (record) => {
@@ -208,7 +215,6 @@ function AdvanceScreen() {
       setAdvanceRecords(updatedRecords)
       setAdvanceData(updatedRecords)
       setToastMessage('Advance record deleted successfully!')
-      setTimeout(() => setToastMessage(''), 3000)
     }
   }
 
@@ -234,14 +240,11 @@ function AdvanceScreen() {
     <div className="min-h-screen bg-gray-900 text-white">
       <Header onAddClick={() => { setEditingRecord(null); setIsModalOpen(true); }} />
       <main className="w-full px-4 py-3 mx-8">
-        {/* Toast */}
-        {toastMessage && (
-          <Toast className="fixed top-20 left-5 z-50 border-2 border-red-500 max-w-xs w-auto">
-            <div className="flex items-center">
-              <div className="ml-3 text-sm font-normal">{toastMessage}</div>
-            </div>
-          </Toast>
-        )}
+        <Toast 
+          message={toastMessage} 
+          type={toastMessage?.includes('successfully') ? 'success' : 'error'}
+          onClose={() => setToastMessage('')}
+        />
 
         {/* Party Search for Table */}
         {advanceRecords.length > 0 && (
@@ -256,7 +259,7 @@ function AdvanceScreen() {
                 placeholder="Type to search for a party..."
                 value={tableSearchQuery}
                 onChange={(e) => setTableSearchQuery(e.target.value)}
-                onFocus={() => tableSearchQuery && !tableSearchParty && setShowTableDropdown(true)}
+                onFocus={() => !tableSearchParty && setShowTableDropdown(true)}
                 onBlur={() => {
                   setTimeout(() => setShowTableDropdown(false), 150)
                 }}
@@ -275,13 +278,14 @@ function AdvanceScreen() {
               )}
 
               {/* Search Results Dropdown */}
-              {showTableDropdown && !isTableSearching && tableFilteredParties.length > 0 && (
+              {showTableDropdown && !isTableSearching && !tableSearchParty && tableFilteredParties.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   {tableFilteredParties.map((party) => (
                     <div
                       key={party.id}
                       className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white border-b border-gray-700 last:border-b-0"
-                      onClick={() => {
+                      onMouseDown={(e) => {
+                        e.preventDefault()
                         setTableSearchParty(party.name)
                         setTableSearchQuery(party.name)
                         setShowTableDropdown(false)
@@ -296,7 +300,7 @@ function AdvanceScreen() {
               )}
 
               {/* No results message */}
-              {showTableDropdown && !isTableSearching && tableSearchQuery && tableFilteredParties.length === 0 && (
+              {showTableDropdown && !isTableSearching && !tableSearchParty && tableSearchQuery && tableFilteredParties.length === 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
                   <div className="px-4 py-2 text-gray-400">
                     No parties found matching "{tableSearchQuery}"
@@ -415,7 +419,7 @@ function AdvanceScreen() {
                   placeholder="Type to search for a party..."
                   value={partySearchQuery}
                   onChange={(e) => setPartySearchQuery(e.target.value)}
-                  onFocus={() => partySearchQuery && !selectedParty && setShowPartyDropdown(true)}
+                  onFocus={() => !selectedParty && setShowPartyDropdown(true)}
                   onBlur={() => {
                     setTimeout(() => setShowPartyDropdown(false), 150)
                   }}
@@ -434,13 +438,14 @@ function AdvanceScreen() {
                 )}
 
                 {/* Search Results Dropdown */}
-                {showPartyDropdown && !isPartySearching && filteredParties.length > 0 && (
+                {showPartyDropdown && !isPartySearching && !selectedParty && filteredParties.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredParties.map((party) => (
                       <div
                         key={party.id}
                         className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white border-b border-gray-700 last:border-b-0"
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault()
                           setSelectedParty(party.name)
                           setPartySearchQuery(party.name)
                           setShowPartyDropdown(false)
@@ -455,7 +460,7 @@ function AdvanceScreen() {
                 )}
 
                 {/* No results message */}
-                {showPartyDropdown && !isPartySearching && partySearchQuery && filteredParties.length === 0 && (
+                {showPartyDropdown && !isPartySearching && !selectedParty && partySearchQuery && filteredParties.length === 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
                     <div className="px-4 py-2 text-gray-400">
                       No parties found matching "{partySearchQuery}"

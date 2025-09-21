@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Card, Badge, TextInput, Table, TableHead, TableHeadCell, TableBody, TableRow, TableCell, Button, Select, Textarea, Toast, Label } from 'flowbite-react'
-import { getToday, getTransactionsData, setTransactionsData, computeAmount, getItemsData, getPartiesData } from '../lib/storage'
+import { Card, Badge, TextInput, Table, TableHead, TableHeadCell, TableBody, TableRow, TableCell, Button, Select, Textarea, Label } from 'flowbite-react'
+import { getToday, getTransactionsData, setTransactionsData, computeAmount, getItemsData, getPartiesData, getVendorsData } from '../lib/storage'
 import Header from '../components/Header'
+import Toast from '../components/Toast'
 
 function TransactionScreen() {
   const [rows, setRows] = useState([])
@@ -17,11 +18,20 @@ function TransactionScreen() {
   const [formParty, setFormParty] = useState('')
   const [formItem, setFormItem] = useState('')
   const [formQty, setFormQty] = useState('')
-  const [formRate, setFormRate] = useState('')
+  const [formGroupRate, setFormGroupRate] = useState('')
+  const [formVendorRate, setFormVendorRate] = useState('')
   const [formLuggage, setFormLuggage] = useState('')
   const [formUnit, setFormUnit] = useState('kgs')
+  const [formDriver, setFormDriver] = useState('')
+  const [formVendor, setFormVendor] = useState('')
   const [itemsList, setItemsList] = useState([])
   const [partiesList, setPartiesList] = useState([])
+  const [vendorsList, setVendorsList] = useState([])
+  const [availableDrivers, setAvailableDrivers] = useState([])
+  const [vendorSearchQuery, setVendorSearchQuery] = useState('')
+  const [filteredVendors, setFilteredVendors] = useState([])
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false)
+  const [isVendorSearching, setIsVendorSearching] = useState(false)
   const [partySearchQuery, setPartySearchQuery] = useState('')
   const [filteredParties, setFilteredParties] = useState([])
   const [showPartyDropdown, setShowPartyDropdown] = useState(false)
@@ -38,13 +48,13 @@ function TransactionScreen() {
 
   // Debounced party search function
   const debouncePartySearch = useCallback((query) => {
-    if (query.trim() && !formParty) {
+    if (query.trim()) {
       setIsPartySearching(true)
       setShowPartyDropdown(true)
     }
 
     const timeoutId = setTimeout(() => {
-      if (query.trim() && !formParty) {
+      if (query.trim()) {
         const filtered = partiesList.filter(party =>
           party.name.toLowerCase().includes(query.toLowerCase())
         )
@@ -62,7 +72,35 @@ function TransactionScreen() {
       clearTimeout(timeoutId)
       setIsPartySearching(false)
     }
-  }, [partiesList, formParty])
+  }, [partiesList])
+
+  // Debounced vendor search function
+  const debounceVendorSearch = useCallback((query) => {
+    if (query.trim()) {
+      setIsVendorSearching(true)
+      setShowVendorDropdown(true)
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (query.trim()) {
+        const filtered = vendorsList.filter(vendor =>
+          vendor.name.toLowerCase().includes(query.toLowerCase())
+        )
+        setFilteredVendors(filtered)
+        setIsVendorSearching(false)
+        setShowVendorDropdown(true)
+      } else {
+        setFilteredVendors([])
+        setShowVendorDropdown(false)
+        setIsVendorSearching(false)
+      }
+    }, 300)
+
+    return () => {
+      clearTimeout(timeoutId)
+      setIsVendorSearching(false)
+    }
+  }, [vendorsList])
 
   useEffect(() => {
     if (editingRow) {
@@ -71,18 +109,26 @@ function TransactionScreen() {
       setPartySearchQuery(editingRow.party)
       setFormItem(editingRow.item)
       setFormQty(editingRow.qty)
-      setFormRate(editingRow.rate)
+      setFormGroupRate(editingRow.groupRate || editingRow.rate || '')
+      setFormVendorRate(editingRow.vendorRate || '')
       setFormLuggage(editingRow.luggage || '')
       setFormUnit(editingRow.unit || 'kgs')
+      setFormDriver(editingRow.driver || '')
+      setFormVendor(editingRow.vendor || '')
+      setVendorSearchQuery(editingRow.vendor || '')
     } else {
       setFormDate(today)
       setFormParty('')
       setPartySearchQuery('')
       setFormItem('')
       setFormQty('')
-      setFormRate('')
+      setFormGroupRate('')
+      setFormVendorRate('')
       setFormLuggage('')
       setFormUnit('kgs')
+      setFormDriver('')
+      setFormVendor('')
+      setVendorSearchQuery('')
     }
   }, [editingRow, today])
 
@@ -91,11 +137,38 @@ function TransactionScreen() {
     return cleanup
   }, [partySearchQuery, debouncePartySearch])
 
+  useEffect(() => {
+    const cleanup = debounceVendorSearch(vendorSearchQuery)
+    return cleanup
+  }, [vendorSearchQuery, debounceVendorSearch])
+
+  // Update available drivers when party is selected
+  useEffect(() => {
+    if (formParty) {
+      const selectedParty = partiesList.find(party => party.name === formParty)
+      if (selectedParty && selectedParty.drivers) {
+        setAvailableDrivers(selectedParty.drivers)
+      } else {
+        setAvailableDrivers([])
+      }
+      // Clear driver selection when party changes
+      if (!editingRow) {
+        setFormDriver('')
+      }
+    } else {
+      setAvailableDrivers([])
+      setFormDriver('')
+    }
+  }, [formParty, partiesList, editingRow])
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.party-search-container')) {
         setShowPartyDropdown(false)
+      }
+      if (!event.target.closest('.vendor-search-container')) {
+        setShowVendorDropdown(false)
       }
     }
 
@@ -139,6 +212,10 @@ function TransactionScreen() {
     // Load parties for dropdown
     const parties = getPartiesData()
     setPartiesList(parties)
+
+    // Load vendors for dropdown
+    const vendors = getVendorsData()
+    setVendorsList(vendors)
   }, [])
 
   const handleSort = (key) => {
@@ -210,8 +287,8 @@ function TransactionScreen() {
       return
     }
 
-    if (!formRate || Number(formRate) <= 0) {
-      setModalErrorMessage('Please enter a valid rate.')
+    if (!formGroupRate || Number(formGroupRate) <= 0) {
+      setModalErrorMessage('Please enter a valid group rate.')
       setTimeout(() => {
         modalRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
       }, 100)
@@ -219,20 +296,22 @@ function TransactionScreen() {
       return
     }
 
-    const amount = computeAmount({ qty: formQty, rate: formRate })
-    const netTotal = amount - (Number(formLuggage) || 0) // Subtract luggage from net total
+    const amount = computeAmount({ qty: formQty, rate: formGroupRate, luggage: formLuggage })
 
     const newRow = {
       id: editingRow ? editingRow.id : crypto.randomUUID(),
       date: formDate,
       party: formParty,
+      vendor: formVendor,
       item: formItem,
       qty: Number(formQty),
-      rate: Number(formRate),
+      groupRate: Number(formGroupRate),
+      vendorRate: Number(formVendorRate) || 0,
+      rate: Number(formGroupRate), // Keep for backward compatibility
       luggage: Number(formLuggage) || 0,
       amount,
       unit: formUnit,
-      netTotal
+      driver: formDriver
     }
     let updatedRows
     if (editingRow) {
@@ -260,15 +339,21 @@ function TransactionScreen() {
         setFormDate(today)
         setFormParty('')
         setPartySearchQuery('')
+        setFormVendor('')
+        setVendorSearchQuery('')
         setFormItem('')
         setFormQty('')
-        setFormRate('')
+        setFormGroupRate('')
+        setFormVendorRate('')
         setFormLuggage('')
         setFormUnit('kgs')
+        setFormDriver('')
         setShowPartyDropdown(false)
         setIsPartySearching(false)
+        setShowVendorDropdown(false)
+        setIsVendorSearching(false)
       }
-      
+
       setIsModalOpen(false)
       setEditingRow(null)
       setModalSuccessMessage('')
@@ -281,20 +366,25 @@ function TransactionScreen() {
     setFormDate(today)
     setFormParty('')
     setPartySearchQuery('')
+    setFormVendor('')
+    setVendorSearchQuery('')
     setFormItem('')
     setFormQty('')
-    setFormRate('')
+    setFormGroupRate('')
+    setFormVendorRate('')
     setFormLuggage('')
     setFormUnit('kgs')
+    setFormDriver('')
     setShowPartyDropdown(false)
+    setShowVendorDropdown(false)
     setIsPartySearching(false)
     setModalErrorMessage('')
     setModalSuccessMessage('')
   }
 
   // Calculate totals for display
-  const rateTotal = computeAmount({ qty: formQty, rate: formRate })
-  const netTotal = rateTotal - (Number(formLuggage) || 0) // Subtract luggage from net total
+  const groupTotal = computeAmount({ qty: formQty, rate: formGroupRate, luggage: formLuggage })
+  const vendorTotal = formVendorRate ? (Number(formQty) || 0) * (Number(formVendorRate) || 0) : 0
 
   const parties = [...new Set(rows.map(r => r.party))]
 
@@ -304,27 +394,29 @@ function TransactionScreen() {
   const formattedTotalRevenue = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalRevenue)
   const formattedPendingAmount = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(pendingAmount)
 
+  // Function to get driver mobile number
+  const getDriverMobile = (partyName, driverName) => {
+    if (!partyName || !driverName) return null
+    
+    const party = partiesList.find(p => p.name === partyName)
+    if (!party || !party.drivers) return null
+    
+    const driver = party.drivers.find(d => d.name === driverName)
+    return driver ? driver.mobile : null
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Header onAddClick={() => { 
-        setEditingRow(null); 
-        setFormDate(today); 
-        setIsModalOpen(true); 
+      <Header onAddClick={() => {
+        setEditingRow(null);
+        setFormDate(today);
+        setIsModalOpen(true);
       }} />
 
       {/* Page Container */}
       <main className="w-full px-4 py-3 mx-8">
 
-        {/* Controls */}
-        <div className="mb-4 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <TextInput
-              placeholder="Search by party or item…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
+
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -337,20 +429,32 @@ function TransactionScreen() {
                 <TableHeadCell onClick={() => handleSort('party')} className="cursor-pointer text-white">
                   Party {sort.key === 'party' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
+                <TableHeadCell onClick={() => handleSort('vendor')} className="cursor-pointer text-white">
+                  Vendor {sort.key === 'vendor' && (sort.dir === 'asc' ? '▲' : '▼')}
+                </TableHeadCell>
+                <TableHeadCell onClick={() => handleSort('driver')} className="cursor-pointer text-white">
+                  Farmer {sort.key === 'driver' && (sort.dir === 'asc' ? '▲' : '▼')}
+                </TableHeadCell>
                 <TableHeadCell onClick={() => handleSort('item')} className="cursor-pointer text-white">
                   Item {sort.key === 'item' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
                 <TableHeadCell onClick={() => handleSort('qty')} className="cursor-pointer text-right text-white">
                   Qty {sort.key === 'qty' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell onClick={() => handleSort('rate')} className="cursor-pointer text-right text-white">
-                  Rate (₹) {sort.key === 'rate' && (sort.dir === 'asc' ? '▲' : '▼')}
+                <TableHeadCell onClick={() => handleSort('groupRate')} className="cursor-pointer text-right text-white">
+                  Group Rate (₹) {sort.key === 'groupRate' && (sort.dir === 'asc' ? '▲' : '▼')}
+                </TableHeadCell>
+                <TableHeadCell onClick={() => handleSort('vendorRate')} className="cursor-pointer text-right text-white">
+                  Vendor Rate (₹) {sort.key === 'vendorRate' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
                 <TableHeadCell onClick={() => handleSort('luggage')} className="cursor-pointer text-right text-white">
                   Luggage (₹) {sort.key === 'luggage' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell onClick={() => handleSort('amount')} className="cursor-pointer text-right text-white">
-                  Net Total (₹) {sort.key === 'amount' && (sort.dir === 'asc' ? '▲' : '▼')}
+                <TableHeadCell onClick={() => handleSort('groupTotal')} className="cursor-pointer text-right text-white">
+                  Group Total (₹) {sort.key === 'groupTotal' && (sort.dir === 'asc' ? '▲' : '▼')}
+                </TableHeadCell>
+                <TableHeadCell onClick={() => handleSort('vendorTotal')} className="cursor-pointer text-right text-white">
+                  Vendor Total (₹) {sort.key === 'vendorTotal' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
                 <TableHeadCell className="text-white">Actions</TableHeadCell>
               </TableRow>
@@ -360,11 +464,24 @@ function TransactionScreen() {
                 <TableRow key={row.id} className={index % 2 === 1 ? "bg-gray-700" : "bg-gray-800"}>
                   <TableCell className="text-white">{row.date}</TableCell>
                   <TableCell className="text-white">{row.party}</TableCell>
+                  <TableCell className="text-white">{row.vendor || '-'}</TableCell>
+                  <TableCell className="text-white">
+                    {row.driver ? (
+                      <div>
+                        <div>{row.driver}</div>
+                        {getDriverMobile(row.party, row.driver) && (
+                          <div className="text-xs text-gray-400">({getDriverMobile(row.party, row.driver)})</div>
+                        )}
+                      </div>
+                    ) : '-'}
+                  </TableCell>
                   <TableCell className="text-white">{row.item}</TableCell>
                   <TableCell className="text-right text-white">{row.qty}</TableCell>
-                  <TableCell className="text-right text-white">₹{row.rate}</TableCell>
+                  <TableCell className="text-right text-white">₹{row.groupRate || row.rate || 0}</TableCell>
+                  <TableCell className="text-right text-white">₹{row.vendorRate || 0}</TableCell>
                   <TableCell className="text-right text-white">₹{row.luggage || 0}</TableCell>
-                  <TableCell className="text-right text-white">₹{row.amount}</TableCell>
+                  <TableCell className="text-right text-white">₹{((Number(row.qty || 0) * Number(row.groupRate || row.rate || 0)) + Number(row.luggage || 0)).toFixed(2)}</TableCell>
+                  <TableCell className="text-right text-white">₹{((Number(row.qty || 0) * Number(row.vendorRate || 0))).toFixed(2)}</TableCell>
                   <TableCell>
                     <Button size="sm" onClick={() => handleEdit(row)} className="mr-2 min-h-11 min-w-11">Edit</Button>
                     <Button size="sm" color="failure" onClick={() => handleDelete(row)} className="min-h-11 min-w-11">Delete</Button>
@@ -376,17 +493,11 @@ function TransactionScreen() {
         </div>
       </main>
 
-      {/* Custom Toast */}
-      {toastMessage && (
-        <div className="fixed top-20 right-5 z-[9999] bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg border-l-4 border-green-800 max-w-sm">
-          <div className="flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            <span className="text-sm font-medium">{toastMessage}</span>
-          </div>
-        </div>
-      )}
+      <Toast
+        message={toastMessage}
+        type="success"
+        onClose={() => setToastMessage('')}
+      />
 
       {/* Modal */}
       {isModalOpen && (
@@ -409,23 +520,26 @@ function TransactionScreen() {
             {/* Modal Error Toast */}
             {modalErrorMessage && (
               <div className="mx-4 mt-4">
-                <Toast className="w-full bg-gray-800 border-2 border-red-500">
+                <div className="bg-red-600 text-white px-4 py-3 rounded-lg border-l-4 border-red-800">
                   <div className="flex items-center">
-                    <div className="ml-3 text-sm font-normal text-white">{modalErrorMessage}</div>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-medium">{modalErrorMessage}</span>
                   </div>
-                </Toast>
+                </div>
               </div>
             )}
 
             {/* Modal Success Toast */}
             {modalSuccessMessage && (
               <div className="mx-4 mt-4">
-                <div className="w-full bg-green-600 border-2 border-green-800 rounded-lg p-3">
+                <div className="bg-green-600 text-white px-4 py-3 rounded-lg border-l-4 border-green-800">
                   <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <div className="text-sm font-medium text-white">{modalSuccessMessage}</div>
+                    <span className="text-sm font-medium">{modalSuccessMessage}</span>
                   </div>
                 </div>
               </div>
@@ -440,16 +554,20 @@ function TransactionScreen() {
 
               {/* Party Search - Full Width */}
               <div className="relative party-search-container mb-0">
-                <Label htmlFor="party-search" className="block text-sm font-medium text-white mb-1">Party</Label>
+                <Label htmlFor="party-search" className="block text-sm font-medium text-white mb-1">Group</Label>
                 <TextInput
                   id="party-search"
                   type="text"
                   placeholder="Type to search for a party..."
                   value={partySearchQuery}
                   onChange={(e) => setPartySearchQuery(e.target.value)}
-                  onFocus={() => partySearchQuery && !formParty && setShowPartyDropdown(true)}
+                  onFocus={() => {
+                    if (!formParty) {
+                      setShowPartyDropdown(true)
+                    }
+                  }}
                   onBlur={() => {
-                    setTimeout(() => setShowPartyDropdown(false), 150)
+                    setTimeout(() => setShowPartyDropdown(false), 200)
                   }}
                   disabled={formParty}
                   className="dark w-full"
@@ -466,13 +584,14 @@ function TransactionScreen() {
                 )}
 
                 {/* Search Results Dropdown */}
-                {showPartyDropdown && !isPartySearching && filteredParties.length > 0 && (
+                {showPartyDropdown && !isPartySearching && !formParty && filteredParties.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredParties.map((party) => (
                       <div
                         key={party.id}
                         className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white border-b border-gray-700 last:border-b-0"
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault()
                           setFormParty(party.name)
                           setPartySearchQuery(party.name)
                           setShowPartyDropdown(false)
@@ -487,7 +606,7 @@ function TransactionScreen() {
                 )}
 
                 {/* No results message */}
-                {showPartyDropdown && !isPartySearching && partySearchQuery && filteredParties.length === 0 && (
+                {showPartyDropdown && !isPartySearching && !formParty && partySearchQuery && filteredParties.length === 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
                     <div className="px-4 py-2 text-gray-400">
                       No parties found matching "{partySearchQuery}"
@@ -505,6 +624,100 @@ function TransactionScreen() {
                         setPartySearchQuery('')
                         setShowPartyDropdown(false)
                         setIsPartySearching(false)
+                      }}
+                      className="px-3 py-1 text-sm text-white bg-transparent border border-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Driver Dropdown - Only show when party is selected */}
+              {formParty && availableDrivers.length > 0 && (
+                <div>
+                  <Label htmlFor="driver" className="block text-sm font-medium text-white mb-1">Farmer</Label>
+                  <Select id="driver" value={formDriver} onChange={(e) => setFormDriver(e.target.value)} className="dark">
+                    <option value="">Select a farmer (optional)</option>
+                    {availableDrivers.map(driver => (
+                      <option key={driver.id} value={driver.name}>{driver.name} - {driver.mobile}</option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+
+              {/* Vendor Search - Full Width */}
+              <div className="relative vendor-search-container mb-0">
+                <Label htmlFor="vendor-search" className="block text-sm font-medium text-white mb-1">Vendor</Label>
+                <TextInput
+                  id="vendor-search"
+                  type="text"
+                  placeholder="Type to search for a vendor..."
+                  value={vendorSearchQuery}
+                  onChange={(e) => setVendorSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (!formVendor) {
+                      setShowVendorDropdown(true)
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowVendorDropdown(false), 200)
+                  }}
+                  disabled={formVendor}
+                  className="dark w-full"
+                />
+
+                {/* Loading Spinner */}
+                {showVendorDropdown && isVendorSearching && (
+                  <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
+                    <div className="px-4 py-3 flex items-center gap-3 text-gray-300">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-blue-400"></div>
+                      <span className="text-sm">Searching...</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Search Results Dropdown */}
+                {showVendorDropdown && !isVendorSearching && !formVendor && filteredVendors.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredVendors.map((vendor) => (
+                      <div
+                        key={vendor.id}
+                        className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white border-b border-gray-700 last:border-b-0"
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          setFormVendor(vendor.name)
+                          setVendorSearchQuery(vendor.name)
+                          setShowVendorDropdown(false)
+                          setIsVendorSearching(false)
+                          document.getElementById('vendor-search')?.blur()
+                        }}
+                      >
+                        {vendor.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* No results message */}
+                {showVendorDropdown && !isVendorSearching && !formVendor && vendorSearchQuery && filteredVendors.length === 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
+                    <div className="px-4 py-2 text-gray-400">
+                      No vendors found matching "{vendorSearchQuery}"
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected vendor display */}
+                {formVendor && (
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-400"></span>
+                    <button
+                      onClick={() => {
+                        setFormVendor('')
+                        setVendorSearchQuery('')
+                        setShowVendorDropdown(false)
+                        setIsVendorSearching(false)
                       }}
                       className="px-3 py-1 text-sm text-white bg-transparent border border-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
                     >
@@ -548,18 +761,34 @@ function TransactionScreen() {
                 <TextInput id="luggage" type="number" placeholder="0" value={formLuggage} onChange={(e) => setFormLuggage(e.target.value)} className="dark" />
               </div>
 
-              {/* Rate Section */}
+              {/* Rate Section - Split into Group Rate and Vendor Rate */}
               <div>
-                <Label htmlFor="rate" className="block text-sm font-medium text-white mb-1">Rate (₹)</Label>
-                <TextInput id="rate" type="number" placeholder={`Rate per ${formUnit}`} value={formRate} onChange={(e) => setFormRate(e.target.value)} className="dark" />
+                <Label className="block text-sm font-medium text-white mb-2">Rates (₹)</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="groupRate" className="block text-xs text-gray-300 mb-1">Group Rate *</Label>
+                    <TextInput id="groupRate" type="number" placeholder={`Rate per ${formUnit}`} value={formGroupRate} onChange={(e) => setFormGroupRate(e.target.value)} className="dark" />
+                  </div>
+                  <div>
+                    <Label htmlFor="vendorRate" className="block text-xs text-gray-300 mb-1">Vendor Rate</Label>
+                    <TextInput id="vendorRate" type="number" placeholder={`Rate per ${formUnit}`} value={formVendorRate} onChange={(e) => setFormVendorRate(e.target.value)} className="dark" />
+                  </div>
+                </div>
               </div>
 
-              {/* Net Total Display */}
+              {/* Total Display - Split into Group and Vendor */}
               <div className="bg-gray-700 rounded-lg p-4">
-                <div className="flex justify-center">
-                  <div className="bg-blue-600 rounded p-3 text-center w-full max-w-xs">
-                    <div className="text-xs text-gray-200 mb-1">Net Total</div>
-                    <div className="text-lg font-bold text-white">₹{netTotal.toFixed(2)}</div>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Group Total */}
+                  <div className="bg-blue-600 rounded p-3 text-center">
+                    <div className="text-xs text-gray-200 mb-1">Group Total</div>
+                    <div className="text-lg font-bold text-white">₹{groupTotal.toFixed(2)}</div>
+                  </div>
+
+                  {/* Vendor Total */}
+                  <div className="bg-green-600 rounded p-3 text-center">
+                    <div className="text-xs text-gray-200 mb-1">Vendor Total</div>
+                    <div className="text-lg font-bold text-white">₹{vendorTotal.toFixed(2)}</div>
                   </div>
                 </div>
               </div>

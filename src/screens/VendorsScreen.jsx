@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Button, Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput, Select, Textarea } from 'flowbite-react'
+import { Button, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput } from 'flowbite-react'
 import Header from '../components/Header'
 import Toast from '../components/Toast'
-import { getItemsData, setItemsData } from '../lib/storage'
+import { getVendorsData, setVendorsData } from '../lib/storage'
 
-function ItemsScreen() {
+function VendorsScreen() {
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -15,7 +15,8 @@ function ItemsScreen() {
 
   // Form fields
   const [formName, setFormName] = useState('')
-  const [formUnit, setFormUnit] = useState('kgs')
+  const [formPhone, setFormPhone] = useState('')
+  const [formAddress, setFormAddress] = useState('')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250)
@@ -25,10 +26,12 @@ function ItemsScreen() {
   useEffect(() => {
     if (editingRow) {
       setFormName(editingRow.name)
-      setFormUnit(editingRow.unit)
+      setFormPhone(editingRow.phone || '')
+      setFormAddress(editingRow.address || '')
     } else {
       setFormName('')
-      setFormUnit('kgs')
+      setFormPhone('')
+      setFormAddress('')
     }
   }, [editingRow])
 
@@ -44,86 +47,97 @@ function ItemsScreen() {
   }, [isModalOpen])
 
   useEffect(() => {
-    let data = getItemsData()
-    // Remove seed data - start with empty data after purge
+    let data = getVendorsData()
     setRows(data)
   }, [])
 
-  const handleSort = (key) => {
-    setSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }))
-  }
+  const handleSort = (key) => setSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }))
 
   const filtered = rows.filter(r =>
-    r.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+    r.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    (r.phone || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    (r.address || '').toLowerCase().includes(debouncedSearch.toLowerCase())
   )
 
   const sorted = [...filtered].sort((a, b) => {
-    const aVal = a[sort.key]
-    const bVal = b[sort.key]
+    const aVal = a[sort.key] || ''
+    const bVal = b[sort.key] || ''
     if (sort.dir === 'asc') return aVal > bVal ? 1 : aVal < bVal ? -1 : 0
     return aVal < bVal ? 1 : aVal > bVal ? -1 : 0
   })
 
   const handleEdit = (row) => { setEditingRow(row); setIsModalOpen(true) }
   const handleDelete = (row) => {
-    if (window.confirm('Delete this item?')) {
+    if (window.confirm('Delete this vendor?')) {
       const updated = rows.filter(r => r.id !== row.id)
       setRows(updated)
-      setItemsData(updated)
-      setToastMessage('Item deleted successfully!')
+      setVendorsData(updated)
+      setToastMessage('Vendor deleted successfully!')
     }
   }
 
   const handleSave = () => {
-    if (!formName || !formName.trim()) {
-      setToastMessage('Please enter an item name.')
+    if (!formName) {
+      setToastMessage('Please enter a vendor name.')
       return
     }
 
-    if (!formUnit) {
-      setToastMessage('Please select a unit.')
+    if (!formPhone || !formPhone.trim()) {
+      setToastMessage('Please enter a phone number.')
       return
     }
 
-    // Check for duplicate name (excluding the current editing row)
-    const existingItems = editingRow ? rows.filter(r => r.id !== editingRow.id) : rows
-    const nameExists = existingItems.some(item =>
-      item.name.toLowerCase() === formName.trim().toLowerCase()
+    // Check for duplicate name or phone (excluding the current editing row)
+    const existingVendors = editingRow ? rows.filter(r => r.id !== editingRow.id) : rows
+
+    // Check if vendor name already exists
+    const nameExists = existingVendors.some(vendor =>
+      vendor.name.toLowerCase() === formName.toLowerCase()
     )
 
     if (nameExists) {
-      setToastMessage('An item with this name already exists. Please use a different name.')
+      setToastMessage('A vendor with this name already exists. Please use a different name.')
+      return
+    }
+
+    // Check if phone already exists
+    const phoneExists = existingVendors.some(vendor =>
+      vendor.phone && vendor.phone.toLowerCase() === formPhone.toLowerCase()
+    )
+
+    if (phoneExists) {
+      setToastMessage('A vendor with this phone number already exists. Please use a different phone number.')
       return
     }
 
     const newRow = {
       id: editingRow ? editingRow.id : crypto.randomUUID(),
-      name: formName.trim(),
-      unit: formUnit
+      name: formName,
+      phone: formPhone,
+      address: formAddress
     }
-    let updated
-    if (editingRow) updated = rows.map(r => r.id === editingRow.id ? newRow : r)
-    else updated = [...rows, newRow]
+    const updated = editingRow ? rows.map(r => r.id === editingRow.id ? newRow : r) : [...rows, newRow]
     setRows(updated)
-    setItemsData(updated)
+    setVendorsData(updated)
 
     // Clear form only for new entries (not edits)
     if (!editingRow) {
       setFormName('')
-      setFormUnit('kgs')
+      setFormPhone('')
+      setFormAddress('')
     }
 
     setIsModalOpen(false)
     setEditingRow(null)
-    setToastMessage(editingRow ? 'Item updated successfully!' : 'Item added successfully!')
+    setToastMessage(editingRow ? 'Vendor updated successfully!' : 'Vendor added successfully!')
   }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Header onAddClick={() => { setEditingRow(null); setIsModalOpen(true); }} />
 
-      <Toast 
-        message={toastMessage} 
+      <Toast
+        message={toastMessage}
         type={toastMessage?.includes('successfully') ? 'success' : 'error'}
         onClose={() => setToastMessage('')}
       />
@@ -131,7 +145,7 @@ function ItemsScreen() {
       <main className="w-full px-4 py-3 mx-8">
 
         <div className="mb-4">
-          <TextInput placeholder="Search items…" value={search} onChange={e => setSearch(e.target.value)} />
+          <TextInput placeholder="Search vendors…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         <div className="overflow-x-auto">
@@ -141,8 +155,11 @@ function ItemsScreen() {
                 <TableHeadCell onClick={() => handleSort('name')} className="cursor-pointer text-white">
                   Name {sort.key === 'name' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
-                <TableHeadCell onClick={() => handleSort('unit')} className="cursor-pointer text-white">
-                  Unit {sort.key === 'unit' && (sort.dir === 'asc' ? '▲' : '▼')}
+                <TableHeadCell onClick={() => handleSort('phone')} className="cursor-pointer text-white">
+                  Phone {sort.key === 'phone' && (sort.dir === 'asc' ? '▲' : '▼')}
+                </TableHeadCell>
+                <TableHeadCell onClick={() => handleSort('address')} className="cursor-pointer text-white">
+                  Address {sort.key === 'address' && (sort.dir === 'asc' ? '▲' : '▼')}
                 </TableHeadCell>
                 <TableHeadCell className="text-white">Actions</TableHeadCell>
               </TableRow>
@@ -151,7 +168,8 @@ function ItemsScreen() {
               {sorted.map((row, i) => (
                 <TableRow key={row.id} className={i % 2 === 1 ? 'bg-gray-700' : 'bg-gray-800'}>
                   <TableCell className="text-white">{row.name}</TableCell>
-                  <TableCell className="text-white">{row.unit}</TableCell>
+                  <TableCell className="text-white">{row.phone}</TableCell>
+                  <TableCell className="text-white">{row.address}</TableCell>
                   <TableCell>
                     <Button size="sm" onClick={() => handleEdit(row)} className="mr-2 min-h-11 min-w-11">Edit</Button>
                     <Button size="sm" color="failure" onClick={() => handleDelete(row)} className="min-h-11 min-w-11">Delete</Button>
@@ -161,33 +179,27 @@ function ItemsScreen() {
             </TableBody>
           </Table>
         </div>
-
-        {toastMessage && (
-          <Toast className="fixed top-5 left-5 z-[60] border-2 border-red-500 max-w-xs w-auto">
-            <div className="flex items-center">
-              <div className="ml-3 text-sm font-normal">{toastMessage}</div>
-            </div>
-          </Toast>
-        )}
       </main>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 modal-backdrop">
           <div className="bg-gray-800 rounded-lg shadow-lg max-w-md w-full mx-4">
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white">{editingRow ? 'Edit Item' : 'Add Item'}</h3>
+              <h3 className="text-lg font-semibold text-white">{editingRow ? 'Edit Vendor' : 'Add Vendor'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">✕</button>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-white mb-1">Name</label>
-                <TextInput id="name" placeholder="Item name" value={formName} onChange={e => setFormName(e.target.value)} />
+                <label htmlFor="name" className="block text-sm font-medium text-white mb-1">Name *</label>
+                <TextInput id="name" placeholder="Vendor name" value={formName} onChange={e => setFormName(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="unit" className="block text-sm font-medium text-white mb-1">Unit</label>
-                <Select id="unit" value={formUnit} onChange={e => setFormUnit(e.target.value)}>
-                  <option value="kgs">kgs</option>
-                </Select>
+                <label htmlFor="phone" className="block text-sm font-medium text-white mb-1">Phone *</label>
+                <TextInput id="phone" placeholder="Phone" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
+              </div>
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-white mb-1">Address</label>
+                <TextInput id="address" placeholder="Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end space-x-2 p-4 border-t border-gray-700">
@@ -201,4 +213,4 @@ function ItemsScreen() {
   )
 }
 
-export default ItemsScreen
+export default VendorsScreen

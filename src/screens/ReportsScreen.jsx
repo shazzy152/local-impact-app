@@ -21,17 +21,22 @@ function ReportsScreen() {
   // Debounced search function
   const debounceSearch = useCallback((query) => {
     // Show loading immediately when user starts typing (but not if party is already selected)
-    if (query.trim() && !selectedParty) {
+    if (!selectedParty) {
       setIsSearching(true)
       setShowDropdown(true)
     }
 
     const timeoutId = setTimeout(() => {
-      if (query.trim() && !selectedParty) {
-        const filtered = parties.filter(party =>
-          party.name.toLowerCase().includes(query.toLowerCase())
-        )
-        setFilteredParties(filtered)
+      if (!selectedParty) {
+        if (query.trim()) {
+          const filtered = parties.filter(party =>
+            party.name.toLowerCase().includes(query.toLowerCase())
+          )
+          setFilteredParties(filtered)
+        } else {
+          // Show all parties if no search query
+          setFilteredParties(parties)
+        }
         setIsSearching(false)
         setShowDropdown(true)
       } else {
@@ -51,6 +56,8 @@ function ReportsScreen() {
     // Load parties and transactions data
     const partiesData = getPartiesData()
     const transactionsData = getTransactionsData()
+
+
 
     setParties(partiesData)
     setTransactions(transactionsData)
@@ -126,7 +133,7 @@ function ReportsScreen() {
         {/* Party Search Input */}
         <div className="mb-2 relative party-search-container">
           <label htmlFor="party-search" className="block text-sm font-medium text-white mb-2">
-            Search Party
+            Search Group
           </label>
           <TextInput
             id="party-search"
@@ -134,7 +141,7 @@ function ReportsScreen() {
             placeholder="Type to search for a party..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => searchQuery && !selectedParty && setShowDropdown(true)}
+            onFocus={() => !selectedParty && setShowDropdown(true)}
             onBlur={() => {
               // Delay hiding dropdown to allow click events to register
               setTimeout(() => setShowDropdown(false), 150)
@@ -154,13 +161,14 @@ function ReportsScreen() {
           )}
 
           {/* Search Results Dropdown */}
-          {showDropdown && !isSearching && filteredParties.length > 0 && (
+          {showDropdown && !isSearching && !selectedParty && filteredParties.length > 0 && (
             <div className="absolute z-10 w-full max-w-md mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
               {filteredParties.map((party) => (
                 <div
                   key={party.id}
                   className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white border-b border-gray-700 last:border-b-0"
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault()
                     setSelectedParty(party.name)
                     setSearchQuery(party.name)
                     setShowDropdown(false)
@@ -176,10 +184,10 @@ function ReportsScreen() {
           )}
 
           {/* No results message */}
-          {showDropdown && !isSearching && searchQuery && filteredParties.length === 0 && (
+          {showDropdown && !isSearching && !selectedParty && searchQuery && filteredParties.length === 0 && (
             <div className="absolute z-10 w-full max-w-md mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
               <div className="px-4 py-2 text-gray-400">
-                No parties found matching "{searchQuery}"
+                No groups found matching "{searchQuery}"
               </div>
             </div>
           )}
